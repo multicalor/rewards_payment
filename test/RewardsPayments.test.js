@@ -4,7 +4,7 @@ const {ethers} = require('hardhat')
 describe("RewardsPayments", () => {
     let owner, acc1, acc2, acc3, acc4, acc5, acc6
     let tokens = []
-    let tether
+    let tether, nft
     beforeEach(async() => {
         [owner, acc1, acc2, acc3, acc4, acc5, acc6] = await ethers.getSigners()
         
@@ -44,8 +44,21 @@ describe("RewardsPayments", () => {
         let rewardsPayments_balance = ethers.utils.parseUnits('100', 'mwei')
         tether.transfer(rewardsPayments.address, rewardsPayments_balance)
         rewardsPayments_balance = await tether.balanceOf(rewardsPayments.address)
-        console.log({rewardsPayments_balance})
+        // console.log({rewardsPayments_balance})
         tokens.push = tether
+
+        // NFT contract deploy
+        const NFT = await ethers.getContractFactory("MyToken", owner);
+        nft = await NFT.deploy()
+        await nft.deployed()
+        // Create NFTis 
+
+        
+        for(let i = 0; i < 100; i++) {
+            await nft.safeMint(rewardsPayments.address)    
+        }
+        const nft_balance = await nft.balanceOf(rewardsPayments.address)
+        console.log({nft_balance})
     })
 
     it("should be deployed", async () => {
@@ -53,7 +66,7 @@ describe("RewardsPayments", () => {
         tokens.forEach(element => {
             console.log(element.address)
         });
-        console.log({tether:tether.address})
+        console.log({tether:tether.address, nft:nft.address})
         console.log('success!')
     })
 
