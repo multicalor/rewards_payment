@@ -130,7 +130,10 @@ describe("RewardsPayments", () => {
     it("sign reward", async () => {
         let message = owner.address
         signature = await owner.signMessage(message);
+        let sig = ethers.utils.splitSignature(signature);
         let recovered = ethers.utils.verifyMessage( message , signature )
-        console.log({signer:recovered==owner.address})
+        console.log({signer:recovered == owner.address})
+        // https://docs.ethers.io/v4/cookbook-signing.html
+        // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
     })
 })
