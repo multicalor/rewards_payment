@@ -54,7 +54,7 @@ contract RewardsPayments is Ownable {
     }
 
     struct Token {
-        address Addresses;
+        address Address;
         uint Amount;
     }
 
@@ -63,6 +63,7 @@ contract RewardsPayments is Ownable {
         uint roundId;
         Token[] tokens;
         uint nftId;
+        // bytes32 sign;
         bool status;
     }
 
@@ -72,10 +73,6 @@ contract RewardsPayments is Ownable {
         // Reward[] rewards;
     }
 
-    
-
-    
-
     mapping(address => Reward) public recipientsRewards;
     address [] public recipients;
     uint rewardRoundId;
@@ -84,7 +81,16 @@ contract RewardsPayments is Ownable {
 
     event WithdrawReward(uint amount, uint when);
 
-    function createRewardRound(Reward[] memory rewards) public  { //returns (Token[] memory)returns (Reward[] memory)
+    function createRewardRound(Reward[] memory rewards) public returns (Token[] memory){ //returns (Reward[] memory)
+
+        for(uint i = 0; i < rewards.length; i++){
+            Token[] memory tokens = rewards[i].tokens;
+            // address [] memory tokensAddresses = tokens.Addresses;
+            // uint [] memory tokensAmounts = tokens.Amount;
+            createReward(rewards[i].recipient, tokens, rewards[i].nftId, rewards[i].roundId);
+            
+        }
+
         // return rewards;
     // struct Reward {
     //     address recipient;
@@ -99,30 +105,24 @@ contract RewardsPayments is Ownable {
     //     uint Amount;
     // }
         
-        // address [] memory res;
-        for(uint i = 0; i < rewards.length; i++){
-            Token[] memory tokens = rewards[i].tokens;
-            // address [] memory tokensAddresses = tokens.Addresses;
-            // uint [] memory tokensAmounts = tokens.Amounts;
 
-            // createReward(rewards[i].recipient, tokensAddresses, tokensAmounts, rewards[i].nftId, rewards[i].roundId);
-        }
         // return res;
     }
 
-    function createReward(address recipient, address[] memory tokensAddresses, uint[] memory tokensAmounts, uint nftId, uint roundId)public returns (Reward memory){ //returns (Reward memory)
+    function createReward(address recipient, Token [] memory tokens, uint nftId, uint roundId)public returns (Reward memory){ //returns (Reward memory) address[] memory tokensAddresses, uint[] memory tokensAmounts
         recipientsRewards[recipient].recipient = recipient;
         recipientsRewards[recipient].roundId = roundId;
         recipientsRewards[recipient].nftId = nftId;
         recipientsRewards[recipient].status = false;
+        // recipientsRewards[recipient].tokens = Token(tokens.Address, tokens.Amount);
         // recipientsRewards[recipient].tokens.push(Token(0xd2a5bC10698FD955D1Fe6cb468a17809A08fd005, 3));
         // recipientsRewards[recipient].tokens = Token[] tokens;
         // recipients.push(recipient);
 
-        for(uint i = 0; i < tokensAddresses.length; i++){
-            recipientsRewards[recipient].tokens.push(Token(tokensAddresses[i], tokensAmounts[i]));
-        //     // Token storage token = Token(tokensAddresses[i], tokensAmounts[i]);
-        //     // tokens[i] = token;
+        for(uint i = 0; i < tokens.length; i++){
+            recipientsRewards[recipient].tokens.push(Token(tokens[i].Address, tokens[i].Amount));
+        // //     // Token storage token = Token(tokensAddresses[i], tokensAmounts[i]);
+        // //     // tokens[i] = token;
         }
 
 

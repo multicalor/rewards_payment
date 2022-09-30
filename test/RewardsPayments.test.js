@@ -77,9 +77,10 @@ describe("RewardsPayments", () => {
         let tokensAmounts = new Array(tokensAddresses.length).fill(ethers.utils.parseUnits('100', 'mwei'))   //ethers.utils.parseUnits('100', 'mwei'),ethers.utils.parseUnits('100', 'mwei'),3,4,5,6,7,8,9,10,11]
         let nftId = '1'
         let roundId = '1'
+        let tokensArg = [{Address:acc1.address,Amount:ethers.utils.parseUnits('100', 'mwei')}]
         
 
-        await rewardsPayments.createReward(recipient, tokensAddresses, tokensAmounts, nftId,roundId)
+        await rewardsPayments.createReward(recipient, tokensArg, nftId,roundId)
         const res = await rewardsPayments.getUserRevard(recipient)
         // console.log({res:res.tokens})
     })
@@ -91,7 +92,7 @@ describe("RewardsPayments", () => {
         let tokensAmounts = new Array(tokensAddresses.length).fill(ethers.utils.parseUnits('100', 'mwei'))   //ethers.utils.parseUnits('100', 'mwei'),ethers.utils.parseUnits('100', 'mwei'),3,4,5,6,7,8,9,10,11]
         let nftId = '1'
         let roundId = '1'
-
+        let token = {address:acc1.address, amount:ethers.utils.parseUnits('100', 'mwei')}
         let tokensArg = tokens.map((element) => {
             return {Address:element.address, Amount:ethers.utils.parseUnits('100', 'mwei')}
         })
@@ -99,10 +100,10 @@ describe("RewardsPayments", () => {
         
         let Reward = {
             recipient,
-            tokens:tokensArg,//:[{Addresses:tokensAddresses,Amounts:tokensAmounts}]//, ,
+            tokens:[{Address:acc1.address,Amount:ethers.utils.parseUnits('100', 'mwei')}, {Address:acc1.address,Amount:ethers.utils.parseUnits('100', 'mwei')}],//, ,tokensArg,//
             nftId,
             roundId,
-            status:"false"
+            status:false
         }
         console.log(Reward)
             // struct Reward {
@@ -121,8 +122,15 @@ describe("RewardsPayments", () => {
         
         
 
-        const res = await rewardsPayments.createRewardRound(argument)
-        // const res = await rewardsPayments.getUserRevard(recipient)
-        console.log({res})//res, , argument
+        await rewardsPayments.createRewardRound(argument)
+        const res = await rewardsPayments.getUserRevard(recipient)
+        console.log({res:res.tokens})//res, , argument
+    })
+
+    it("sign reward", async () => {
+        let message = owner.address
+        signature = await owner.signMessage(message);
+        let recovered = ethers.utils.verifyMessage( message , signature )
+        console.log({signer:recovered==owner.address})
     })
 })
