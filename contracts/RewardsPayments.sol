@@ -74,14 +74,43 @@ contract RewardsPayments is Ownable {
 
     
 
+    
+
     mapping(address => Reward) public recipientsRewards;
     address [] public recipients;
+    uint rewardRoundId;
 
     RewardRound[] rewardsRounds;
 
     event WithdrawReward(uint amount, uint when);
 
-    function createReward(address recipient, address[] calldata tokensAddresses, uint[] calldata tokensAmounts, uint nftId, uint roundId)public returns (Reward memory){ //returns (Reward memory)
+    function createRewardRound(Reward[] memory rewards) public  { //returns (Token[] memory)returns (Reward[] memory)
+        // return rewards;
+    // struct Reward {
+    //     address recipient;
+    //     uint roundId;
+    //     Token[] tokens;
+    //     uint nftId;
+    //     bool status;
+    // }
+
+    // struct Token {
+    //     address Addresses;
+    //     uint Amount;
+    // }
+        
+        // address [] memory res;
+        for(uint i = 0; i < rewards.length; i++){
+            Token[] memory tokens = rewards[i].tokens;
+            // address [] memory tokensAddresses = tokens.Addresses;
+            // uint [] memory tokensAmounts = tokens.Amounts;
+
+            // createReward(rewards[i].recipient, tokensAddresses, tokensAmounts, rewards[i].nftId, rewards[i].roundId);
+        }
+        // return res;
+    }
+
+    function createReward(address recipient, address[] memory tokensAddresses, uint[] memory tokensAmounts, uint nftId, uint roundId)public returns (Reward memory){ //returns (Reward memory)
         recipientsRewards[recipient].recipient = recipient;
         recipientsRewards[recipient].roundId = roundId;
         recipientsRewards[recipient].nftId = nftId;
@@ -102,8 +131,16 @@ contract RewardsPayments is Ownable {
         return recipientsRewards[recipient];
     }
 
-    function getUserRevard(address recipient)public view returns (uint){
-        return recipientsRewards[recipient].tokens[0].Amount;
+    function getUserRevard(address recipient)public view returns (Reward memory){
+    // struct Reward {
+    //     address recipient;
+    //     uint roundId;
+    //     Token[] tokens;
+    //     uint nftId;
+    //     bool status;
+    // }
+        Reward memory revard = recipientsRewards[recipient];
+        return revard;//.tokens[0].Amount;
         // Token memory result = recipientsRewards[recipient].tokens;
         // Token [] memory result; //= recipientsRewards[recipient].tokens;
 

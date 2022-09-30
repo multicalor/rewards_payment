@@ -21,13 +21,13 @@ describe("RewardsPayments", () => {
         for(let i = 0; i < 10; i++) {
             const tt = await TestToken.deploy()
             await tt.deployed();
-            console.log(tt.address)
+            // console.log(tt.address)
             
             //RewardsPayments contract TestToken refill
             let rewardsPayments_balance = ethers.utils.parseEther('1000000000')
             tt.transfer(rewardsPayments.address, rewardsPayments_balance)
             rewardsPayments_balance = await tt.balanceOf(rewardsPayments.address)
-            console.log({rewardsPayments_balance})
+            // console.log({rewardsPayments_balance})
             tokens[i] = tt
         }
      
@@ -58,21 +58,71 @@ describe("RewardsPayments", () => {
             await nft.safeMint(rewardsPayments.address)    
         }
         const nft_balance = await nft.balanceOf(rewardsPayments.address)
-        console.log({nft_balance})
+        // console.log({nft_balance})
     })
 
     it("should be deployed", async () => {
-        console.log(rewardsPayments.address)
-        tokens.forEach(element => {
-            console.log(element.address)
-        });
-        console.log({tether:tether.address, nft:nft.address})
-        console.log('success!')
+        // console.log(rewardsPayments.address)
+        // tokens.forEach(element => {
+        //     console.log(element.address)
+        // });
+        // console.log({tether:tether.address, nft:nft.address})
+        // console.log('success!')
     })
 
     it("reward has created", async () => {
-        let recipient = acc1
+        // arguments
+        let recipient = acc1.address
+        let tokensAddresses = tokens.map(element=>element.address)
+        let tokensAmounts = new Array(tokensAddresses.length).fill(ethers.utils.parseUnits('100', 'mwei'))   //ethers.utils.parseUnits('100', 'mwei'),ethers.utils.parseUnits('100', 'mwei'),3,4,5,6,7,8,9,10,11]
+        let nftId = '1'
+        let roundId = '1'
+        
 
-        // rewardsPayments.createReward(address recipient, address[] calldata tokensAddresses, uint[] calldata tokensAmounts, uint nftId, uint roundId)public returns (Reward memory)
+        await rewardsPayments.createReward(recipient, tokensAddresses, tokensAmounts, nftId,roundId)
+        const res = await rewardsPayments.getUserRevard(recipient)
+        // console.log({res:res.tokens})
+    })
+
+    it("round reward has created", async () => {
+        // arguments
+        let recipient = acc1.address
+        let tokensAddresses = tokens.map(element => element.address)
+        let tokensAmounts = new Array(tokensAddresses.length).fill(ethers.utils.parseUnits('100', 'mwei'))   //ethers.utils.parseUnits('100', 'mwei'),ethers.utils.parseUnits('100', 'mwei'),3,4,5,6,7,8,9,10,11]
+        let nftId = '1'
+        let roundId = '1'
+
+        let tokensArg = tokens.map((element) => {
+            return {Address:element.address, Amount:ethers.utils.parseUnits('100', 'mwei')}
+        })
+
+        
+        let Reward = {
+            recipient,
+            tokens:tokensArg,//:[{Addresses:tokensAddresses,Amounts:tokensAmounts}]//, ,
+            nftId,
+            roundId,
+            status:"false"
+        }
+        console.log(Reward)
+            // struct Reward {
+    //     address recipient;
+    //     uint roundId;
+    //     Token[] tokens;
+    //     uint nftId;
+    //     bool status;
+    // }
+
+    // struct Token {
+    //     address Addresses;
+    //     uint Amount;
+    // }
+        let argument = [Reward] //new Array(3).fill(reward)
+        
+        
+
+        const res = await rewardsPayments.createRewardRound(argument)
+        // const res = await rewardsPayments.getUserRevard(recipient)
+        console.log({res})//res, , argument
     })
 })
