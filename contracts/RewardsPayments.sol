@@ -83,8 +83,8 @@ contract RewardsPayments is Ownable {
 
     event WithdrawReward(uint amount, uint when);
 
-    function test(uint roundId)public view returns (RewardRound memory){
-        return rewardsRounds[roundId];
+    function test(uint roundId)public view returns (Token[] memory){
+        return rewardsRounds[roundId].Amount;
         // return amount;
     }
 
@@ -98,9 +98,6 @@ contract RewardsPayments is Ownable {
 
 
         for(uint i = 0; i < rewards.length; i++){
-            // Token[] memory tokens = rewards[i].tokens;
-            // recipients1[i] = rewards[i].recipient;
-            // rewards1.push(rewards[i].recipient);
             rewardsRounds[rewardRoundId].recipients.push(rewards[i].recipient);
             createReward(rewards[i].recipient, rewards[i].tokens, rewards[i].nftId, rewards[i].roundId);
         }
@@ -137,6 +134,38 @@ contract RewardsPayments is Ownable {
         return recipientsRewards[recipient];
     }
 
+    // function toString(address account) public pure returns(string memory) {
+    //     return toString(abi.encodePacked(account));
+    // }
+
+    function toAsciiString(address x) internal pure returns (string memory) {
+    bytes memory s = new bytes(40);
+    for (uint i = 0; i < 20; i++) {
+        bytes1 b = bytes1(uint8(uint(uint160(x)) / (2**(8*(19 - i)))));
+        bytes1 hi = bytes1(uint8(b) / 16);
+        bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+        s[2*i] = char(hi);
+        s[2*i+1] = char(lo);            
+    }
+    return string(s);
+}
+
+function char(bytes1 b) internal pure returns (bytes1 c) {
+    if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+    else return bytes1(uint8(b) + 0x57);
+}
+
+    function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
+        // address usrer = msg.sender;
+        // string memory recipient = toString(usrer);
+        // bytes32 _hashedMessage = keccak256(abi.encodePacked(recipient));
+
+        // address signer = verifyString(_hashedMessage, _v, _r, _s);
+        // address owner = owner();
+        // require(signer == owner, "sign failed");
+        
+    }
+
     // function getUserRevard(address recipient)public view returns (Reward memory){
     //     Reward memory revard = recipientsRewards[recipient];
     //     return revard;//.tokens[0].Amount;
@@ -147,8 +176,15 @@ contract RewardsPayments is Ownable {
 
     // }
 
-    modifier checkPaymentStatus(){
+    modifier checkPaymentStatus(uint8 _v, bytes32 _r, bytes32 _s){
         require(paymentStatus == PaymentStatuses.Active, 'Payment status is paused');
+        _;
+    }
+
+    modifier checkSign(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s){
+        address signer = verifyString(_hashedMessage, _v, _r, _s);
+        address owner = owner();
+        require(signer == owner, "sign failed");
         _;
     }
 
@@ -173,11 +209,84 @@ contract RewardsPayments is Ownable {
 
     // function getRecepientReward
 
-    function VerifyMessage(bytes32 _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public pure returns (address) {
-        bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-        bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, _hashedMessage));
-        address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
-        return signer;
+    // function VerifyMessage(bytes32 _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public pure returns (address) {
+    //     bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+    //     bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, _hashedMessage));
+    //     address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
+    //     return signer;
+    // }
+
+    function verifyString(string memory message, uint8 v, bytes32 r, bytes32 s) public pure returns (address signer) {
+
+        // The message header; we will fill in the length next
+        string memory header = "\x19Ethereum Signed Message:\n000000";
+
+        uint256 lengthOffset;
+        uint256 length;
+        assembly {
+            // The first word of a string is its length
+            length := mload(message)
+            // The beginning of the base-10 message length in the prefix
+            lengthOffset := add(header, 57)
+        }
+
+        // Maximum length we support
+        require(length <= 999999);
+
+        // The length of the message's length in base-10
+        uint256 lengthLength = 0;
+
+        // The divisor to get the next left-most message length digit
+        uint256 divisor = 100000;
+
+        // Move one digit of the message length to the right at a time
+        while (divisor != 0) {
+
+            // The place value at the divisor
+            uint256 digit = length / divisor;
+            if (digit == 0) {
+                // Skip leading zeros
+                if (lengthLength == 0) {
+                    divisor /= 10;
+                    continue;
+                }
+            }
+
+            // Found a non-zero digit or non-leading zero digit
+            lengthLength++;
+
+            // Remove this digit from the message length's current value
+            length -= digit * divisor;
+
+            // Shift our base-10 divisor over
+            divisor /= 10;
+
+            // Convert the digit to its ASCII representation (man ascii)
+            digit += 0x30;
+            // Move to the next character and write the digit
+            lengthOffset++;
+
+            assembly {
+                mstore8(lengthOffset, digit)
+            }
+        }
+
+        // The null string requires exactly 1 zero (unskip 1 leading 0)
+        if (lengthLength == 0) {
+            lengthLength = 1 + 0x19 + 1;
+        } else {
+            lengthLength += 1 + 0x19;
+        }
+
+        // Truncate the tailing zeros from the header
+        assembly {
+            mstore(header, lengthLength)
+        }
+
+        // Perform the elliptic curve recover operation
+        bytes32 check = keccak256(abi.encodePacked(header, message));
+
+        return ecrecover(check, v, r, s);
     }
 
     function onERC721Received(
