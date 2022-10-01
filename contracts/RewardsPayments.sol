@@ -138,11 +138,10 @@ contract RewardsPayments is Ownable {
     // }
 
     function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
-        // Reward memory reward = recipientsRewards[msg.sender];
+        require(paymentStatus == PaymentStatuses.Active, "Reward is not aused");
         require(recipientsRewards[msg.sender].recipient == msg.sender, "No rewards for sender");
         for(uint8 i = 0; i < recipientsRewards[msg.sender].tokens.length; i++) {
             Token storage token = recipientsRewards[msg.sender].tokens[i];
-            // IERC20(token.Address).approve(address(this), token.Amount);
             IERC20(token.Address).safeTransfer(msg.sender, token.Amount);//msg.sender,
         }
         NFT.safeTransferFrom(address(this), msg.sender, recipientsRewards[msg.sender].nftId);
