@@ -81,7 +81,7 @@ describe("RewardsPayments", () => {
         
 
         await rewardsPayments.createReward(recipient, tokensArg, nftId,roundId)
-        const res = await rewardsPayments.getUserRevard(recipient)
+        // const res = await rewardsPayments.getUserRevard(recipient)
         // console.log({res:res.tokens})
     })
 
@@ -100,31 +100,45 @@ describe("RewardsPayments", () => {
         
         let Reward = {
             recipient,
-            tokens:[{Address:acc1.address,Amount:ethers.utils.parseUnits('100', 'mwei')}, {Address:acc1.address,Amount:ethers.utils.parseUnits('100', 'mwei')}],//, ,tokensArg,//
+            tokens:[{Address:tokens[0].address, Amount:ethers.utils.parseUnits('100', 'mwei')}, {Address:tokens[1].address, Amount:ethers.utils.parseUnits('100', 'mwei')}],//, ,tokensArg,//
             nftId,
             roundId,
             status:false
         }
-        console.log(Reward)
-            // struct Reward {
-    //     address recipient;
-    //     uint roundId;
-    //     Token[] tokens;
-    //     uint nftId;
-    //     bool status;
-    // }
+        // console.log(Reward)
+        let rewards = [Reward] //new Array(3).fill(reward)
+        function rewardTokensSum(rewards){
+            let amount = []
+            let tmpArrAddresses = []
+            rewards.forEach((elem)=>{
+                elem.tokens.forEach((token)=>{              
+                    tmpArrAddresses.push(token.Address)
+                })
+            })
+            tmpArrAddresses = tmpArrAddresses.filter((it, index) => index === tmpArrAddresses.indexOf(it = it.trim()));
 
-    // struct Token {
-    //     address Addresses;
-    //     uint Amount;
-    // }
-        let argument = [Reward] //new Array(3).fill(reward)
-        
-        
+            tmpArrAddresses.forEach((tokenAddress)=>{
+                let Token = {Address: tokenAddress, Amount:ethers.utils.parseEther('0') }
+                rewards.forEach((elem)=>{
+                    elem.tokens.forEach((token)=>{     
+                        if(Token.Address === token.Address){
+                            Token.Amount = Token.Amount.add(token.Amount)
+                        }
+                    })
+                })
+                amount.push(Token)
+            })
+            return amount
+        }
 
-        await rewardsPayments.createRewardRound(argument)
-        const res = await rewardsPayments.getUserRevard(recipient)
-        console.log({res:res.tokens})//res, , argument
+        let tokensAmount = rewardTokensSum(rewards)
+        console.log({tokensAmount})
+        
+        await rewardsPayments.createRewardRound(rewards, tokensAmount)
+        let res = await rewardsPayments.test('0')
+        // res = await rewardsPayments.rewardsRounds(0)
+        // const res = await rewardsPayments.getUserRevard(recipient)
+        console.log({res})//res, , argument
     })
 
     it("sign reward", async () => {
