@@ -4,6 +4,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 
 // Тех задание на позицию Solidity dev
@@ -45,6 +46,8 @@ pragma solidity ^0.8.9;
 
 contract RewardsPayments is Ownable {
 
+    using SafeERC20 for IERC20;
+
     enum PaymentStatuses {Active, Paused}
 
     PaymentStatuses paymentStatus;
@@ -75,6 +78,7 @@ contract RewardsPayments is Ownable {
     }
 
     mapping(address => Reward) public recipientsRewards;
+    // mapping(uint => mapping(address => Reward)) public recipientsRewards;
     mapping(uint => RewardRound) public rewardsRounds;
     // address [] public recipients;
     uint rewardRoundId = 0;
@@ -83,20 +87,13 @@ contract RewardsPayments is Ownable {
 
     event WithdrawReward(uint amount, uint when);
 
-    function test(uint roundId)public view returns (Token[] memory){
-        return rewardsRounds[roundId].Amount;
+    function test()public view returns (Token memory){
+        Token memory token = recipientsRewards[msg.sender].tokens[0];
+        return token;
         // return amount;
     }
 
     function createRewardRound(Reward[] memory rewards, Token[] memory amount) public { //returns (Reward[] memory)returns (Token[] memory)
-        // address [] memory recipients1;
-        // RewardRound[] storage rewards1 = rewardsRounds[rewardRoundId];
-
-        // // Token[] memory tokens;
-        // RewardRound memory round;
-        // RewardRound[] memory rounds;
-
-
         for(uint i = 0; i < rewards.length; i++){
             rewardsRounds[rewardRoundId].recipients.push(rewards[i].recipient);
             createReward(rewards[i].recipient, rewards[i].tokens, rewards[i].nftId, rewards[i].roundId);
@@ -106,20 +103,6 @@ contract RewardsPayments is Ownable {
         }
         rewardsRounds[rewardRoundId].roundId = rewardRoundId;
         rewardRoundId++;
-
-    // struct Reward {
-    //     address recipient;
-    //     uint roundId;
-    //     Token[] tokens;
-    //     uint nftId;
-    //     bool status;
-    // }
-
-    // struct Token {
-    //     address Addresses;
-    //     uint Amount;
-    // }
-        
     }
 
     function createReward(address recipient, Token [] memory tokens, uint nftId, uint roundId)public returns (Reward memory){ //returns (Reward memory) address[] memory tokensAddresses, uint[] memory tokensAmounts
@@ -133,10 +116,6 @@ contract RewardsPayments is Ownable {
         }
         return recipientsRewards[recipient];
     }
-
-    // function toString(address account) public pure returns(string memory) {
-    //     return toString(abi.encodePacked(account));
-    // }
 
     function toAsciiString(address x) internal pure returns (string memory) {
     bytes memory s = new bytes(40);
@@ -156,14 +135,13 @@ function char(bytes1 b) internal pure returns (bytes1 c) {
 }
 
     function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
-        // address usrer = msg.sender;
-        // string memory recipient = toString(usrer);
-        // bytes32 _hashedMessage = keccak256(abi.encodePacked(recipient));
-
-        // address signer = verifyString(_hashedMessage, _v, _r, _s);
-        // address owner = owner();
-        // require(signer == owner, "sign failed");
-        
+        // Reward memory reward = recipientsRewards[msg.sender];
+        for(uint8 i = 0; i < recipientsRewards[msg.sender].tokens.length; i++) {
+            Token memory token = recipientsRewards[msg.sender].tokens[i];
+            // IERC20(token.Address).approve(address(this), token.Amount);
+            IERC20(token.Address).safeTransfer(recipientsRewards[msg.sender].recipient, token.Amount);//msg.sender,
+        }
+        // delete recipientsRewards[msg.sender].tokens;
     }
 
     // function getUserRevard(address recipient)public view returns (Reward memory){
@@ -188,33 +166,9 @@ function char(bytes1 b) internal pure returns (bytes1 c) {
         _;
     }
 
-    // function changePaymentStatus(PaymentStatuses _status) external onlyOwner{
-    //     paymentStatus = _status;
-    // }
-
-
-
-    // function abortRewardRound()public returns(bool){
-    //     return true;
-    // }
-
-    // function withdrawReward() public view checkPaymentStatus returns(bool){
-        
-    //     return true;
-    // }
-
-    // function getRounds(){
-
-    // }
-
-    // function getRecepientReward
-
-    // function VerifyMessage(bytes32 _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public pure returns (address) {
-    //     bytes memory prefix = "\x19Ethereum Signed Message:\n32";
-    //     bytes32 prefixedHashMessage = keccak256(abi.encodePacked(prefix, _hashedMessage));
-    //     address signer = ecrecover(prefixedHashMessage, _v, _r, _s);
-    //     return signer;
-    // }
+    function changePaymentStatus(PaymentStatuses _status) external onlyOwner{
+        paymentStatus = _status;
+    }
 
     function verifyString(string memory message, uint8 v, bytes32 r, bytes32 s) public pure returns (address signer) {
 
