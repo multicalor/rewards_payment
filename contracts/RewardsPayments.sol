@@ -48,11 +48,14 @@ contract RewardsPayments is Ownable {
 
     using SafeERC20 for IERC20;
 
+    IERC721 NFT;
+
     enum PaymentStatuses {Active, Paused}
 
     PaymentStatuses paymentStatus;
 
-    constructor(){
+    constructor(address nftAddress){
+        NFT = IERC721(nftAddress);
         paymentStatus = PaymentStatuses.Active;
     }
 
@@ -117,31 +120,33 @@ contract RewardsPayments is Ownable {
         return recipientsRewards[recipient];
     }
 
-    function toAsciiString(address x) internal pure returns (string memory) {
-    bytes memory s = new bytes(40);
-    for (uint i = 0; i < 20; i++) {
-        bytes1 b = bytes1(uint8(uint(uint160(x)) / (2**(8*(19 - i)))));
-        bytes1 hi = bytes1(uint8(b) / 16);
-        bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
-        s[2*i] = char(hi);
-        s[2*i+1] = char(lo);            
-    }
-    return string(s);
-}
+    // function toAsciiString(address x) internal pure returns (string memory) {
+    // bytes memory s = new bytes(40);
+    // for (uint i = 0; i < 20; i++) {
+    //     bytes1 b = bytes1(uint8(uint(uint160(x)) / (2**(8*(19 - i)))));
+    //     bytes1 hi = bytes1(uint8(b) / 16);
+    //     bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
+    //     s[2*i] = char(hi);
+    //     s[2*i+1] = char(lo);            
+    // }
+    // return string(s);
+    // }
 
-function char(bytes1 b) internal pure returns (bytes1 c) {
-    if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
-    else return bytes1(uint8(b) + 0x57);
-}
+    // function char(bytes1 b) internal pure returns (bytes1 c) {
+    //     if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
+    //     else return bytes1(uint8(b) + 0x57);
+    // }
 
     function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
         // Reward memory reward = recipientsRewards[msg.sender];
+        require(recipientsRewards[msg.sender].recipient == msg.sender, "No rewards for sender");
         for(uint8 i = 0; i < recipientsRewards[msg.sender].tokens.length; i++) {
-            Token memory token = recipientsRewards[msg.sender].tokens[i];
+            Token storage token = recipientsRewards[msg.sender].tokens[i];
             // IERC20(token.Address).approve(address(this), token.Amount);
-            IERC20(token.Address).safeTransfer(recipientsRewards[msg.sender].recipient, token.Amount);//msg.sender,
+            IERC20(token.Address).safeTransfer(msg.sender, token.Amount);//msg.sender,
         }
-        // delete recipientsRewards[msg.sender].tokens;
+        NFT.safeTransferFrom(address(this), msg.sender, recipientsRewards[msg.sender].nftId);
+        delete recipientsRewards[msg.sender];
     }
 
     // function getUserRevard(address recipient)public view returns (Reward memory){

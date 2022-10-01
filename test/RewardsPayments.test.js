@@ -7,10 +7,15 @@ describe("RewardsPayments", () => {
     let tether, nft
     beforeEach(async() => {
         [owner, acc1, acc2, acc3, acc4, acc5, acc6] = await ethers.getSigners()
-        
+
+    // NFT contract deploy
+        const NFT = await ethers.getContractFactory("MyToken", owner);
+        nft = await NFT.deploy()
+        await nft.deployed()
+         
         // Create a new RewardsPayments contract
         const RewardsPayments = await ethers.getContractFactory("RewardsPayments", owner);
-        rewardsPayments = await RewardsPayments.deploy()
+        rewardsPayments = await RewardsPayments.deploy(nft.address)
         await rewardsPayments.deployed()
         
 
@@ -40,6 +45,8 @@ describe("RewardsPayments", () => {
         );
         await tether.deployed();
 
+  
+
         //RewardsPayments contract TestToken refill
         let rewardsPayments_balance = ethers.utils.parseUnits('100', 'mwei')
         tether.transfer(rewardsPayments.address, rewardsPayments_balance)
@@ -47,10 +54,7 @@ describe("RewardsPayments", () => {
         // console.log({rewardsPayments_balance})
         tokens.push = tether
 
-        // NFT contract deploy
-        const NFT = await ethers.getContractFactory("MyToken", owner);
-        nft = await NFT.deploy()
-        await nft.deployed()
+
         // Create NFTis 
 
         
@@ -157,7 +161,7 @@ describe("RewardsPayments", () => {
         //     console.log({balance_before :balanceOf});
         // }
 
-        await rewardsPayments.payReward(message, sig.v,sig.r,sig.s)
+        // await rewardsPayments.payReward(message, sig.v,sig.r,sig.s)
 
         // for(let i = 0; i < tokens.length; i++){
         //     let balanceOf = await tokens[i].balanceOf(rewardsPayments.address)
@@ -238,12 +242,12 @@ describe("RewardsPayments", () => {
             let balanceOfUser = await tokens[i].balanceOf(acc1.address)
             console.log({balance_after :balanceOf, user:balanceOfUser});
         }
-        let res = await rewardsPayments.connect(acc1).test()
+        // let res = await rewardsPayments.connect(acc1).test()
         // res = await rewardsPayments.rewardsRounds(0)
         // const res = await rewardsPayments.getUserRevard(recipient)
-        console.log({res})
+        // console.log({res})
         // let balanceOf = await tokens[i].balanceOf(acc1.address)
-        acc1.address
+        // acc1.address
         // https://docs.ethers.io/v4/cookbook-signing.html
         // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
     })
