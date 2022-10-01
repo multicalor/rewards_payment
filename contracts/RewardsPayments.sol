@@ -138,8 +138,8 @@ contract RewardsPayments is Ownable {
     // }
 
     function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
-        require(paymentStatus == PaymentStatuses.Active, "Reward is not aused");
-        require(recipientsRewards[msg.sender].recipient == msg.sender, "No rewards for sender");
+        require(paymentStatus == PaymentStatuses.Active, "PaymentStatuses: Reward is paused");
+        require(recipientsRewards[msg.sender].recipient == msg.sender, "PaymentStatuses: No rewards for sender");
         for(uint8 i = 0; i < recipientsRewards[msg.sender].tokens.length; i++) {
             Token storage token = recipientsRewards[msg.sender].tokens[i];
             IERC20(token.Address).safeTransfer(msg.sender, token.Amount);//msg.sender,
