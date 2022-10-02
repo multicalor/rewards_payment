@@ -63,26 +63,33 @@ contract RewardsPayments is Ownable {
         address Address;
         uint Amount;
     }
+    // mapping(uint => mapping(address => mapping(address => uint))) public userRewardToken;
 
     struct Reward {
         address recipient;
         uint roundId;
         Token[] tokens;
         uint nftId;
-        // bytes32 sign;
-        bool status;
+    }
+
+    struct CreateRewardRoundInterface {
+        address recipient;
+        Token[] tokens;
+        uint nftId;
     }
 
     struct RewardRound {
         uint roundId;
         address [] recipients;
-        Token [] Amount;
+        // Token [] Amount;
         // Reward[] rewards;
     }
 
     mapping(address => Reward) public recipientsRewards;
     // mapping(uint => mapping(address => Reward)) public recipientsRewards;
     mapping(uint => RewardRound) public rewardsRounds;
+    mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
+    // mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
     // address [] public recipients;
     uint rewardRoundId = 0;
 
@@ -90,29 +97,42 @@ contract RewardsPayments is Ownable {
 
     event WithdrawReward(uint amount, uint when);
 
-    function test()public view returns (Token memory){
-        Token memory token = recipientsRewards[msg.sender].tokens[0];
-        return token;
-        // return amount;
+    function test(uint rewardRoundId, address tokenAddress)public view returns (Token memory){
+        uint rewardBalance = rewardsTokensAmount[rewardRoundId][tokenAddress];
+        return Token(tokenAddress, rewardBalance);
     }
 
-    function createRewardRound(Reward[] memory rewards, Token[] memory amount) public { //returns (Reward[] memory)returns (Token[] memory)
+    function testNft(uint nftId) public view returns (address,address){
+        return (address(this), NFT.ownerOf(nftId));
+    }
+
+    function createRewardRound(CreateRewardRoundInterface[] memory rewards) public onlyOwner { //returns (Reward[] memory)returns (Token[] memory), Token[] memory amount
+        
         for(uint i = 0; i < rewards.length; i++){
             rewardsRounds[rewardRoundId].recipients.push(rewards[i].recipient);
-            createReward(rewards[i].recipient, rewards[i].tokens, rewards[i].nftId, rewards[i].roundId);
+            createReward(rewards[i].recipient, rewards[i].tokens, rewards[i].nftId, rewardRoundId);
+            for(uint j = 0; j < rewards[i].tokens.length; j++) {
+                uint rewardOfToken = rewardsTokensAmount[rewardRoundId][rewards[i].tokens[j].Address]; // = rewardsTokensAmount[rewardRoundId][amount[i].Address] + amount[i].Amount;
+                rewardsTokensAmount[rewardRoundId][rewards[i].tokens[j].Address] = rewardOfToken + rewards[i].tokens[j].Amount;
+            }
+            // uint rewardOfToken = rewardsTokensAmount[rewardRoundId][amount[i].Address]; // = rewardsTokensAmount[rewardRoundId][amount[i].Address] + amount[i].Amount;
+            // rewardsTokensAmount[rewardRoundId][amount[i].Address] = rewardOfToken + amount[i].Amount;
         }
-        for(uint i = 0; i < amount.length; i++){
-            rewardsRounds[rewardRoundId].Amount.push(Token(amount[i].Address, amount[i].Amount));
-        }
+        // for(uint i = 0; i < amount.length; i++){
+        //     rewardsRounds[rewardRoundId].Amount.push(Token(amount[i].Address, amount[i].Amount));
+        //     // mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
+        //     // uint rewardOfToken = rewardsTokensAmount[rewardRoundId][amount[i].Address]; // = rewardsTokensAmount[rewardRoundId][amount[i].Address] + amount[i].Amount;
+        //     // rewardsTokensAmount[rewardRoundId][amount[i].Address] = rewardOfToken + amount[i].Amount;
+        // }
         rewardsRounds[rewardRoundId].roundId = rewardRoundId;
         rewardRoundId++;
     }
 
     function createReward(address recipient, Token [] memory tokens, uint nftId, uint roundId)public returns (Reward memory){ //returns (Reward memory) address[] memory tokensAddresses, uint[] memory tokensAmounts
+        require(NFT.ownerOf(nftId)==address(this), "PaymentStatuses: Wrong nftId");
         recipientsRewards[recipient].recipient = recipient;
         recipientsRewards[recipient].roundId = roundId;
         recipientsRewards[recipient].nftId = nftId;
-        recipientsRewards[recipient].status = false;
 
         for(uint i = 0; i < tokens.length; i++){
             recipientsRewards[recipient].tokens.push(Token(tokens[i].Address, tokens[i].Amount));
@@ -120,42 +140,30 @@ contract RewardsPayments is Ownable {
         return recipientsRewards[recipient];
     }
 
-    // function toAsciiString(address x) internal pure returns (string memory) {
-    // bytes memory s = new bytes(40);
-    // for (uint i = 0; i < 20; i++) {
-    //     bytes1 b = bytes1(uint8(uint(uint160(x)) / (2**(8*(19 - i)))));
-    //     bytes1 hi = bytes1(uint8(b) / 16);
-    //     bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
-    //     s[2*i] = char(hi);
-    //     s[2*i+1] = char(lo);            
-    // }
-    // return string(s);
-    // }
-
-    // function char(bytes1 b) internal pure returns (bytes1 c) {
-    //     if (uint8(b) < 10) return bytes1(uint8(b) + 0x30);
-    //     else return bytes1(uint8(b) + 0x57);
-    // }
-
     function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
         require(paymentStatus == PaymentStatuses.Active, "PaymentStatuses: Reward is paused");
         require(recipientsRewards[msg.sender].recipient == msg.sender, "PaymentStatuses: No rewards for sender");
         for(uint8 i = 0; i < recipientsRewards[msg.sender].tokens.length; i++) {
-            Token storage token = recipientsRewards[msg.sender].tokens[i];
-            IERC20(token.Address).safeTransfer(msg.sender, token.Amount);//msg.sender,
+            Token memory token = recipientsRewards[msg.sender].tokens[i];
+            uint amount = token.Amount;
+            uint roundId = recipientsRewards[msg.sender].roundId;
+            address tokenAddress = recipientsRewards[msg.sender].tokens[i].Address;
+            uint roundTokenBalance = rewardsTokensAmount[roundId][tokenAddress];
+            uint contractBalance = rewardsTokensAmount[roundId][tokenAddress];
+
+            require(roundTokenBalance >= amount || IERC20(token.Address).balanceOf(address(this))>= amount, "PaymentStatuses: Wrong reward balance");
+            IERC20(token.Address).safeTransfer(msg.sender, amount);
+
+            rewardsTokensAmount[roundId][tokenAddress] = roundTokenBalance - amount;
         }
         NFT.safeTransferFrom(address(this), msg.sender, recipientsRewards[msg.sender].nftId);
+        // emit withdrawReward(amount, when);
         delete recipientsRewards[msg.sender];
     }
 
     // function getUserRevard(address recipient)public view returns (Reward memory){
     //     Reward memory revard = recipientsRewards[recipient];
     //     return revard;//.tokens[0].Amount;
-    // }
-
-
-    // function checkSign(){
-
     // }
 
     modifier checkPaymentStatus(uint8 _v, bytes32 _r, bytes32 _s){
