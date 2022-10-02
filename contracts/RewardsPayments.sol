@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // Задача: Разработать контракт  выплаты вознаграждений в сети BSC. 
 // Условия: 
-// 1. Вознаграждения перечисляются в виде ERC20 и ERC721 токенов. 
+// + 1. Вознаграждения перечисляются в виде ERC20 и ERC721 токенов. 
 // 2. Каждый этап выплаты вознаграждений ограничен количеством выплачиваемых токенов (общая сумма ERC20 токенов или количество ERC721 токенов)
 // По какому принципу происходит распределение общей суммы токеноа?
 // 3. В каждом этапе может быть выплата до 5 разных ЕRC20 токенов (например, USDT и WBNB) и 1 ERC721
@@ -87,7 +87,9 @@ contract RewardsPayments is Ownable {
     mapping(uint => RewardRound) public rewardsRounds;
     mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
     mapping(uint => uint) public roundNftamount;
+    mapping(uint => uint) amountNfts;
     uint rewardRoundId;
+    
 
     function test(uint rewardRoundId, address tokenAddress)public view returns (Token memory){
         uint rewardBalance = rewardsTokensAmount[rewardRoundId][tokenAddress];
@@ -134,6 +136,7 @@ contract RewardsPayments is Ownable {
         for(uint i = 0; i < nftIds.length; i++){
             require(NFT.ownerOf(nftIds[i]) == address(this), "PaymentStatuses: Wrong nftId");
             recipientsRewards[recipient].nftIds.push(nftIds[i]);
+            amountNfts[rewardRoundId]++;
         }
         return recipientsRewards[recipient];
     }
@@ -141,10 +144,10 @@ contract RewardsPayments is Ownable {
     function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
         require(paymentStatus == PaymentStatuses.Active, "PaymentStatuses: Reward is paused");
         require(recipientsRewards[msg.sender].recipient == msg.sender, "PaymentStatuses: No rewards for sender");
+        uint roundId = recipientsRewards[msg.sender].roundId;
         for(uint8 i = 0; i < recipientsRewards[msg.sender].tokens.length; i++) {
             Token memory token = recipientsRewards[msg.sender].tokens[i];
             uint amount = token.amount;
-            uint roundId = recipientsRewards[msg.sender].roundId;
             address tokenAddress = recipientsRewards[msg.sender].tokens[i].tokenAddress;
             uint roundTokenBalance = rewardsTokensAmount[roundId][tokenAddress];
             uint contractBalance = IERC20(token.tokenAddress).balanceOf(address(this));
@@ -156,6 +159,7 @@ contract RewardsPayments is Ownable {
         }
         for(uint8 i = 0; i < recipientsRewards[msg.sender].nftIds.length; i++) {
             NFT.safeTransferFrom(address(this), msg.sender, recipientsRewards[msg.sender].nftIds[i]);
+            amountNfts[roundId]--;
         }
         delete recipientsRewards[msg.sender];
     }
