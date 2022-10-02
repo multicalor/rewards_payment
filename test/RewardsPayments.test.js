@@ -29,29 +29,6 @@ describe("RewardsPayments", () => {
         accounts = await ethers.getSigners()
         owner = accounts[0]
         acc1 = accounts[1]
-        // [owner, acc1, acc2, acc3, acc4, acc5, acc6] = accounts
-
-        // function createRandomList(accounts, tokens) {
-        //     tokensArg = []
-        //     for(let i = 0; i < Math.random(4); i++){
-        //         tokensArg.push({tokens: tokens[i], amount:ethers.utils.parseUnits('10000', 'mwei')})
-        //     }
-        //     // let tokens = tokens.map((token, i)=>{
-        //     //     return {tokenAddress: token.address, amount:ethers.utils.parseUnits('10000', 'mwei')}
-        //     // })
-    
-        //     let rewards = accounts.map((account, i)=>{
-        //         console.log()
-        //         return {recipient:account.address, tokens: tokens, nftId: i}
-        //     })
-        //     // let Reward = {
-        //     //     recipient,
-        //     //     tokens:[{Address:tokens[0].address, Amount:ethers.utils.parseUnits('10000', 'mwei')}, {Address:tokens[1].address, Amount:ethers.utils.parseUnits('100', 'mwei')}],//, ,tokensArg,//
-        //     //     nftId,
-        //     // }
-    
-        //     return rewards
-        // }
 
     // NFT contract deploy
         const NFT = await ethers.getContractFactory("MyToken", owner);
@@ -195,15 +172,21 @@ describe("RewardsPayments", () => {
     })
 
     it("sign reward", async () => {
+        // string message
+        // let message = owner.address
+        // signature = await owner.signMessage(message);
+        // let sig = ethers.utils.splitSignature(signature);
+        // // console.log(sig)
+        // let recovered = ethers.utils.verifyMessage( message , signature )
+        // console.log({signer:recovered == owner.address})
 
-        let message = owner.address
-        // message = ethers.utils.arrayify(message);
-        let hashMessage = ethers.utils.hashMessage(message)
-        signature = await owner.signMessage(message);
-        let sig = ethers.utils.splitSignature(signature);
-        // console.log(sig)
-        let recovered = ethers.utils.verifyMessage( message , signature )
-        console.log({signer:recovered == owner.address})
+        // hashMessage
+        let messageHash = ethers.utils.id("Hello World");
+        let messageHashBytes = ethers.utils.arrayify(messageHash)
+        let flatSig = await owner.signMessage(messageHashBytes);
+        let sig = ethers.utils.splitSignature(flatSig);
+        let recovered = await rewardsPayments.verifyHash(messageHash, sig.v, sig.r, sig.s);
+        console.log({sign: owner.address == recovered})
 
         // https://docs.ethers.io/v4/cookbook-signing.html
         // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
@@ -350,6 +333,22 @@ describe("RewardsPayments", () => {
 
         console.log(res)
     })
+    it("check duplicate addresses in rewards", async () => {
+    })
+    it("check payment change status", async () => {
+    })
+    it("check ", async () => {
+    })
+    it("check ", async () => {
+    })
+    it("check ", async () => {
+    })
+    it("check ", async () => {
+    })
+    it("check ", async () => {
+    })
+
+
     // let arguments = createRandomList()
     // console.log({arguments})
 })

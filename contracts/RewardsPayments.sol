@@ -123,13 +123,10 @@ contract RewardsPayments is Ownable {
         rewardRoundId++;
     }
 
-    function createReward(address recipient, Token [] memory tokens, uint [] memory nftIds, uint roundId)public returns (Reward memory){ //returns (Reward memory) address[] memory tokensAddresses, uint[] memory tokensAmounts
-        // require(NFT.ownerOf(nftIds) == address(this), "PaymentStatuses: Wrong nftId");
-        // TODO: check address
-        // require(recipientsRewards[recipient].recipient == address(0), "The address is already participating in the rewards program");
+    function createReward(address recipient, Token [] memory tokens, uint [] memory nftIds, uint roundId)internal returns (Reward memory){ //returns (Reward memory) address[] memory tokensAddresses, uint[] memory tokensAmounts
+        require(recipientsRewards[recipient].recipient == address(0), "The address is already participating in the rewards program");
         recipientsRewards[recipient].recipient = recipient;
         recipientsRewards[recipient].roundId = roundId;
-        // recipientsRewards[recipient].nftId = nftId;
 
         for(uint i = 0; i < tokens.length; i++){
             recipientsRewards[recipient].tokens.push(Token(tokens[i].tokenAddress, tokens[i].amount));
@@ -259,6 +256,14 @@ contract RewardsPayments is Ownable {
         bytes calldata data
     ) external pure returns (bytes4){
         return IERC721Receiver.onERC721Received.selector;
+    }
+
+    function verifyHash(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public pure
+        returns (address signer) {
+
+        bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));//(...));
+
+        return ecrecover(messageDigest, v, r, s);
     }
 }
 

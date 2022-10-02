@@ -7,18 +7,32 @@
 const hre = require("hardhat");
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-  const unlockTime = currentTimestampInSeconds + ONE_YEAR_IN_SECS;
+  let tokens = []
+  const accounts = await ethers.getSigners()
+  const [owner] = accounts
+  const NFT = await hre.ethers.getContractFactory("MyToken");
+  const nft = await NFT.deploy();
+  await nft.deployed();
+  console.log("NFT address: " + nft.address)
 
-  const lockedAmount = hre.ethers.utils.parseEther("1");
+  const RewardsPayments = await hre.ethers.getContractFactory("RewardsPayments");
+  const rewardsPayments = await RewardsPayments.deploy(nft.address);
 
-  const Lock = await hre.ethers.getContractFactory("Lock");
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+  const TestToken = await ethers.getContractFactory("TestToken", owner);
+  for(let i = 0; i < 10; i++) {
+      const tt = await TestToken.deploy()
+      await tt.deployed();
+      console.log("Token_"+i, tt.address)
+      
+      //RewardsPayments contract TestToken refill
+      let rewardsPayments_balance = ethers.utils.parseEther('1000')
+      tt.transfer(rewardsPayments.address, rewardsPayments_balance)
+      rewardsPayments_balance = await tt.balanceOf(rewardsPayments.address)
+      // console.log({rewardsPayments_balance})
+      tokens[i] = tt
+  }
 
-  await lock.deployed();
-
-  console.log("Lock with 1 ETH deployed to:", lock.address);
+  console.log("Lock with 1 ETH deployed to:", rewardsPayments.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
