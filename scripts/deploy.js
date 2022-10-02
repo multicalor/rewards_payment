@@ -32,7 +32,9 @@ async function main() {
       tokens[i] = tt
   }
 
-  console.log("Lock with 1 ETH deployed to:", rewardsPayments.address);
+  // console.log("Lock with 1 ETH deployed to:", rewardsPayments.address);
+  // Lock with 1 ETH deployed to: 0x9FB7d6fA125326d4405bB51c843623DfC6Df7409
+  console.log("RewardsPayment deployed to:", rewardsPayments.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

@@ -1,16 +1,23 @@
+require('dotenv').config()
 require("@nomicfoundation/hardhat-toolbox");
+require("@nomiclabs/hardhat-etherscan");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   networks: {
     rinkeby:{
       url: 'https://rinkeby.infura.io/v3/55e9256b995d45b88010b2522718d3a6',
-      accounts:['0x'+"899a362278c6afb2a2e6ef0b4b10bb0c38eb516cd19f998a77a650e2dd02dcf6"]
+      accounts:['0x'+process.env.ACCOUNT_PK]
     },
     mainnet:{
-      url: 'https://mainnet.infura.io/v3/55e9256b995d45b88010b2522718d3a6',
-      accounts:['0x'+"899a362278c6afb2a2e6ef0b4b10bb0c38eb516cd19f998a77a650e2dd02dcf6"]
+      url: 'https://mainnet.infura.io/v3/'+process.env.RINKEBY_APIKEY,
+      accounts:['0x'+process.env.ACCOUNT_PK]
     }
+  },
+  etherscan: {
+    // Your API key for Etherscan
+    // Obtain one at https://etherscan.io/
+    apiKey: process.env.ETERSCAN_API_KEY
   },
   solidity: {
     compilers: [
