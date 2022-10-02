@@ -81,21 +81,13 @@ contract RewardsPayments is Ownable {
     struct RewardRound {
         uint roundId;
         address [] recipients;
-        // Token [] Amount;
-        // Reward[] rewards;
     }
 
     mapping(address => Reward) public recipientsRewards;
-    // mapping(uint => mapping(address => Reward)) public recipientsRewards;
     mapping(uint => RewardRound) public rewardsRounds;
     mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
-    // mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
-    // address [] public recipients;
-    uint rewardRoundId = 0;
 
-    // RewardRound[] public rewardsRounds;
-
-    event WithdrawReward(uint amount, uint when);
+    uint rewardRoundId;
 
     function test(uint rewardRoundId, address tokenAddress)public view returns (Token memory){
         uint rewardBalance = rewardsTokensAmount[rewardRoundId][tokenAddress];
@@ -110,26 +102,21 @@ contract RewardsPayments is Ownable {
         
         for(uint i = 0; i < rewards.length; i++){
             rewardsRounds[rewardRoundId].recipients.push(rewards[i].recipient);
+            require(rewards[i].tokens.length <= 5, "PaymentStatuses: Reward from address more than 5 types of tokens");
             createReward(rewards[i].recipient, rewards[i].tokens, rewards[i].nftId, rewardRoundId);
             for(uint j = 0; j < rewards[i].tokens.length; j++) {
-                uint rewardOfToken = rewardsTokensAmount[rewardRoundId][rewards[i].tokens[j].Address]; // = rewardsTokensAmount[rewardRoundId][amount[i].Address] + amount[i].Amount;
-                rewardsTokensAmount[rewardRoundId][rewards[i].tokens[j].Address] = rewardOfToken + rewards[i].tokens[j].Amount;
+                uint rewardOfToken = rewardsTokensAmount[rewardRoundId][rewards[i].tokens[j].Address];
+                address tokenAddress = rewards[i].tokens[j].Address;
+                uint amount = rewards[i].tokens[j].Amount;
+                rewardsTokensAmount[rewardRoundId][tokenAddress] = rewardOfToken + amount;
             }
-            // uint rewardOfToken = rewardsTokensAmount[rewardRoundId][amount[i].Address]; // = rewardsTokensAmount[rewardRoundId][amount[i].Address] + amount[i].Amount;
-            // rewardsTokensAmount[rewardRoundId][amount[i].Address] = rewardOfToken + amount[i].Amount;
         }
-        // for(uint i = 0; i < amount.length; i++){
-        //     rewardsRounds[rewardRoundId].Amount.push(Token(amount[i].Address, amount[i].Amount));
-        //     // mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
-        //     // uint rewardOfToken = rewardsTokensAmount[rewardRoundId][amount[i].Address]; // = rewardsTokensAmount[rewardRoundId][amount[i].Address] + amount[i].Amount;
-        //     // rewardsTokensAmount[rewardRoundId][amount[i].Address] = rewardOfToken + amount[i].Amount;
-        // }
         rewardsRounds[rewardRoundId].roundId = rewardRoundId;
         rewardRoundId++;
     }
 
     function createReward(address recipient, Token [] memory tokens, uint nftId, uint roundId)public returns (Reward memory){ //returns (Reward memory) address[] memory tokensAddresses, uint[] memory tokensAmounts
-        require(NFT.ownerOf(nftId)==address(this), "PaymentStatuses: Wrong nftId");
+        require(NFT.ownerOf(nftId) == address(this), "PaymentStatuses: Wrong nftId");
         recipientsRewards[recipient].recipient = recipient;
         recipientsRewards[recipient].roundId = roundId;
         recipientsRewards[recipient].nftId = nftId;
@@ -157,14 +144,8 @@ contract RewardsPayments is Ownable {
             rewardsTokensAmount[roundId][tokenAddress] = roundTokenBalance - amount;
         }
         NFT.safeTransferFrom(address(this), msg.sender, recipientsRewards[msg.sender].nftId);
-        // emit withdrawReward(amount, when);
         delete recipientsRewards[msg.sender];
     }
-
-    // function getUserRevard(address recipient)public view returns (Reward memory){
-    //     Reward memory revard = recipientsRewards[recipient];
-    //     return revard;//.tokens[0].Amount;
-    // }
 
     modifier checkPaymentStatus(uint8 _v, bytes32 _r, bytes32 _s){
         require(paymentStatus == PaymentStatuses.Active, 'Payment status is paused');

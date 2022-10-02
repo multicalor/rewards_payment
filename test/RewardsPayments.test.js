@@ -346,6 +346,7 @@ describe("RewardsPayments", () => {
     it("NFT tests", async () => {
         let nftId = '1'
         res = await rewardsPayments.testNft(nftId)
+        
         console.log(res)
     })
 })
