@@ -438,9 +438,8 @@ describe("RewardsPayments", () => {
         } catch (error){
             let errorMsg = 'PaymentStatuses: No rewards for sender'
             assert.equal(error.toString().includes(errorMsg), true, errorMsg)
-            // expect(error.toString).to.eq('PaymentStatuses: No rewards for sender')
         }
-        // await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
+
     })
     it("check rewards pause", async () => {   
             let arguments = createRewardList(accounts, tokens)

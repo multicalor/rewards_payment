@@ -86,6 +86,8 @@ contract RewardsPayments is Ownable {
     mapping(uint => uint) amountNfts;
     uint rewardRoundId;
 
+    event WithdrawReward(Reward round);
+
     function createRewardRound(CreateRewardRoundInterface[] memory rewards) public onlyOwner { //returns (Reward[] memory)returns (Token[] memory), Token[] memory amount
         
         for(uint i = 0; i < rewards.length; i++){
@@ -140,7 +142,10 @@ contract RewardsPayments is Ownable {
             NFT.safeTransferFrom(address(this), msg.sender, recipientsRewards[msg.sender].nftIds[i]);
             amountNfts[roundId]--;
         }
+
+        emit WithdrawReward(recipientsRewards[msg.sender]);
         delete recipientsRewards[msg.sender];
+
     }
 
     modifier checkPaymentStatus(uint8 _v, bytes32 _r, bytes32 _s){
