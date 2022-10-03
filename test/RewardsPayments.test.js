@@ -322,7 +322,7 @@ describe("RewardsPayments", () => {
         await rewardsPayments.createRewardRound(arguments)//, tokensAmount
         let rewardRoundId = '0'
         let tokenAddress = tokens[0].address
-        let res = await rewardsPayments.test(rewardRoundId, tokenAddress)
+        // let res = await rewardsPayments.test(rewardRoundId, tokenAddress)
 
         // console.log({res:{tokenAddress, res}, tokensAmount})
 
@@ -342,7 +342,7 @@ describe("RewardsPayments", () => {
 
         await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
 
-        res = await rewardsPayments.connect(acc1).test(rewardRoundId, tokenAddress)
+        // res = await rewardsPayments.connect(acc1).test(rewardRoundId, tokenAddress)
         let balanceOf = await tokens[0].balanceOf(acc1.address)
         // console.log('++++++++++++',res, balanceOf)
 
@@ -361,12 +361,12 @@ describe("RewardsPayments", () => {
         // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
     })
 
-    it("NFT tests", async () => {
-        let nftId = '1'
-        res = await rewardsPayments.testNft(nftId)
+    // it("NFT tests", async () => {
+    //     let nftId = '1'
+    //     // res = await rewardsPayments.testNft(nftId)
 
-        // console.log(res)
-    })
+    //     // console.log(res)
+    // })
     it("check duplicate addresses in rewards", async () => {
     })
     it("check payment change status", async () => {
