@@ -85,16 +85,6 @@ contract RewardsPayments is Ownable {
     mapping(uint => uint) public roundNftamount;
     mapping(uint => uint) amountNfts;
     uint rewardRoundId;
-    
-
-    function test(uint rewardRoundId, address tokenAddress)public view returns (Token memory){
-        uint rewardBalance = rewardsTokensAmount[rewardRoundId][tokenAddress];
-        return Token(tokenAddress, rewardBalance);
-    }
-
-    function testNft(uint nftId) public view returns (address,address){
-        return (address(this), NFT.ownerOf(nftId));
-    }
 
     function createRewardRound(CreateRewardRoundInterface[] memory rewards) public onlyOwner { //returns (Reward[] memory)returns (Token[] memory), Token[] memory amount
         
