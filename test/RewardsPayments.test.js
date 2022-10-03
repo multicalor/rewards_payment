@@ -1,24 +1,54 @@
-const {expect} = require('chai')
+const {expect, assert} = require('chai')
 const {ethers} = require('hardhat')
 
 function createRewardList(accounts, tokens) {
 
-    let tokensArg = []
-    let nftIds = []
+    // let nftIds = []
     let tokenId = 0
-    for(let i = 0; i < 5; i++){//
-        tokensArg.push({tokenAddress: tokens[i].address, amount:ethers.utils.parseUnits('1', 'mwei')})
-        let nftId = tokenId+i
-        nftIds.push(nftId)
-    }
+    // for(let i = 0; i < 5; i++){//
+    //     tokensArg.push({tokenAddress: tokens[i].address, amount:ethers.utils.parseUnits('1', 'mwei')})
+    //     let nftId = tokenId+i
+    //     nftIds.push(nftId)
+    // }
 
-    let rewards = accounts.map((account, i)=>{
-        console.log()
-        
+    let rewards = accounts.map((account)=>{
+        let tokensArg = []
+        let nftIds = []
+        for(let i = 0; i < 5; i++){//
+            tokensArg.push({tokenAddress: tokens[i].address, amount:ethers.utils.parseUnits('1', 'mwei')})
+            // let nftId = tokenId+i
+            nftIds.push(tokenId)
+            tokenId++
+        }
         return {recipient:account.address, tokens: tokensArg, nftIds}
     })
     return rewards
 }
+function rewardTokensSum(rewards){
+    let amount = []
+    let tmpArrAddresses = []
+    rewards.forEach((elem)=>{
+        elem.tokens.forEach((token)=>{              
+            tmpArrAddresses.push(token.tokenAddress)
+        })
+    })
+    tmpArrAddresses = tmpArrAddresses.filter((it, index) => index === tmpArrAddresses.indexOf(it = it.trim()));
+    // let Token = {tokenAddress: '', amount:ethers.utils.parseEther('0') }
+    tmpArrAddresses.forEach((tokenAddress)=>{
+        let Token = {tokenAddress: tokenAddress, amount:ethers.utils.parseEther('0') }
+        // Token[tokenAddress] = tokenAddress
+        rewards.forEach((elem)=>{
+            elem.tokens.forEach((token)=>{     
+                if(Token.tokenAddress === token.tokenAddress){
+                    Token.amount = Token.amount.add(token.amount)
+                }
+            })
+        })
+        amount.push(Token)
+    })
+    return amount
+}
+
 
 describe("RewardsPayments", () => {
     let owner, acc1, acc2, acc3, acc4, acc5, acc6
@@ -186,36 +216,36 @@ describe("RewardsPayments", () => {
         let flatSig = await owner.signMessage(messageHashBytes);
         let sig = ethers.utils.splitSignature(flatSig);
         let recovered = await rewardsPayments.verifyHash(messageHash, sig.v, sig.r, sig.s);
-        console.log({sign: owner.address == recovered})
+        // console.log({sign: owner.address == recovered})
 
         // https://docs.ethers.io/v4/cookbook-signing.html
         // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
     })
 
     it("withdraw reward", async () => {        
-        function rewardTokensSum(rewards){
-            let amount = []
-            let tmpArrAddresses = []
-            rewards.forEach((elem)=>{
-                elem.tokens.forEach((token)=>{              
-                    tmpArrAddresses.push(token.Address)
-                })
-            })
-            tmpArrAddresses = tmpArrAddresses.filter((it, index) => index === tmpArrAddresses.indexOf(it = it.trim()));
+        // function rewardTokensSum(rewards){
+        //     let amount = []
+        //     let tmpArrAddresses = []
+        //     rewards.forEach((elem)=>{
+        //         elem.tokens.forEach((token)=>{              
+        //             tmpArrAddresses.push(token.Address)
+        //         })
+        //     })
+        //     tmpArrAddresses = tmpArrAddresses.filter((it, index) => index === tmpArrAddresses.indexOf(it = it.trim()));
 
-            tmpArrAddresses.forEach((tokenAddress)=>{
-                let Token = {Address: tokenAddress, Amount:ethers.utils.parseEther('0') }
-                rewards.forEach((elem)=>{
-                    elem.tokens.forEach((token)=>{     
-                        if(Token.Address === token.Address){
-                            Token.Amount = Token.Amount.add(token.Amount)
-                        }
-                    })
-                })
-                amount.push(Token)
-            })
-            return amount
-        }
+        //     tmpArrAddresses.forEach((tokenAddress)=>{
+        //         let Token = {Address: tokenAddress, Amount:ethers.utils.parseEther('0') }
+        //         rewards.forEach((elem)=>{
+        //             elem.tokens.forEach((token)=>{     
+        //                 if(Token.Address === token.Address){
+        //                     Token.Amount = Token.Amount.add(token.Amount)
+        //                 }
+        //             })
+        //         })
+        //         amount.push(Token)
+        //     })
+        //     return amount
+        // }
 
         let arguments = createRewardList(accounts, tokens)
         await rewardsPayments.createRewardRound(arguments)//, tokensAmount
@@ -229,7 +259,7 @@ describe("RewardsPayments", () => {
         for(let i = 0; i < tokens.length; i++){
             let balanceOf = await tokens[i].balanceOf(rewardsPayments.address)
             let balanceOfUser = await tokens[i].balanceOf(acc1.address)
-            console.log({balance_after :balanceOf, user:balanceOfUser});
+            // console.log({balance_after :balanceOf, user:balanceOfUser});
         }
         // https://docs.ethers.io/v4/cookbook-signing.html
         // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
@@ -248,49 +278,53 @@ describe("RewardsPayments", () => {
         // })
 
         
-        let Reward = {
-            recipient,
-            tokens:[{Address:tokens[0].address, Amount:ethers.utils.parseUnits('100', 'mwei')}, {Address:tokens[1].address, Amount:ethers.utils.parseUnits('100', 'mwei')}],//, ,tokensArg,//
-            nftId,
-            // roundId,
-            // status: false
-        }
-        // console.log(Reward)
-        let rewards = [Reward] //new Array(3).fill(reward)
-        function rewardTokensSum(rewards){
-            let amount = []
-            let tmpArrAddresses = []
-            rewards.forEach((elem)=>{
-                elem.tokens.forEach((token)=>{              
-                    tmpArrAddresses.push(token.Address)
-                })
-            })
-            tmpArrAddresses = tmpArrAddresses.filter((it, index) => index === tmpArrAddresses.indexOf(it = it.trim()));
+        // let Reward = {
+        //     recipient,
+        //     tokens:[{Address:tokens[0].address, Amount:ethers.utils.parseUnits('100', 'mwei')}, {Address:tokens[1].address, Amount:ethers.utils.parseUnits('100', 'mwei')}],//, ,tokensArg,//
+        //     nftId,
+        //     // roundId,
+        //     // status: false
+        // }
+        // // console.log(Reward)
+        // let rewards = [Reward] //new Array(3).fill(reward)
+        // function rewardTokensSum(rewards){
+        //     let amount = []
+        //     let tmpArrAddresses = []
+        //     rewards.forEach((elem)=>{
+        //         elem.tokens.forEach((token)=>{              
+        //             tmpArrAddresses.push(token.tokenAddress)
+        //         })
+        //     })
+        //     tmpArrAddresses = tmpArrAddresses.filter((it, index) => index === tmpArrAddresses.indexOf(it = it.trim()));
+        //     // let Token = {tokenAddress: '', amount:ethers.utils.parseEther('0') }
+        //     tmpArrAddresses.forEach((tokenAddress)=>{
+        //         let Token = {tokenAddress: tokenAddress, amount:ethers.utils.parseEther('0') }
+        //         // Token[tokenAddress] = tokenAddress
+        //         rewards.forEach((elem)=>{
+        //             elem.tokens.forEach((token)=>{     
+        //                 if(Token.tokenAddress === token.tokenAddress){
+        //                     Token.amount = Token.amount.add(token.amount)
+        //                 }
+        //             })
+        //         })
+        //         amount.push(Token)
+        //     })
+        //     return amount
+        // }
 
-            tmpArrAddresses.forEach((tokenAddress)=>{
-                let Token = {Address: tokenAddress, Amount:ethers.utils.parseEther('0') }
-                rewards.forEach((elem)=>{
-                    elem.tokens.forEach((token)=>{     
-                        if(Token.Address === token.Address){
-                            Token.Amount = Token.Amount.add(token.Amount)
-                        }
-                    })
-                })
-                amount.push(Token)
-            })
-            return amount
-        }
-
-        let tokensAmount = rewardTokensSum(rewards)
-        console.log({tokensAmount})
 
         let arguments = createRewardList(accounts, tokens)
+
+        let tokensAmount = rewardTokensSum(arguments)
+
+        // console.log({tokensAmount})
+
         await rewardsPayments.createRewardRound(arguments)//, tokensAmount
         let rewardRoundId = '0'
         let tokenAddress = tokens[0].address
         let res = await rewardsPayments.test(rewardRoundId, tokenAddress)
 
-        console.log({res:{tokenAddress, res}, tokensAmount})
+        // console.log({res:{tokenAddress, res}, tokensAmount})
 
         let message = owner.address
         // message = ethers.utils.arrayify(message);
@@ -310,7 +344,7 @@ describe("RewardsPayments", () => {
 
         res = await rewardsPayments.connect(acc1).test(rewardRoundId, tokenAddress)
         let balanceOf = await tokens[0].balanceOf(acc1.address)
-        console.log('++++++++++++',res, balanceOf)
+        // console.log('++++++++++++',res, balanceOf)
 
         // for(let i = 0; i < tokens.length; i++){
         //     let balanceOf = await tokens[i].balanceOf(rewardsPayments.address)
@@ -331,22 +365,98 @@ describe("RewardsPayments", () => {
         let nftId = '1'
         res = await rewardsPayments.testNft(nftId)
 
-        console.log(res)
+        // console.log(res)
     })
     it("check duplicate addresses in rewards", async () => {
     })
     it("check payment change status", async () => {
     })
-    it("check ", async () => {
+    it("check full reward widhdrw", async () => {
+        let arguments = createRewardList(accounts, tokens)
+        console.log(arguments)
+        let tokensAmount = rewardTokensSum(arguments)
+
+        await rewardsPayments.createRewardRound(arguments)
+        let before_contract_balances = []
+        let after_contract_balances = []
+        
+
+        let before_contract_nft_balance = await nft.balanceOf(rewardsPayments.address)
+
+        for(let j = 0; j < 5; j++){
+            let contract_balance = await tokens[j].balanceOf(rewardsPayments.address)
+            before_contract_balances.push(contract_balance)
+        }
+        console.log(before_contract_balances)
+        for(let i = 0; i < accounts.length; i++){
+            let message = accounts[i].address
+            // let owner = accounts[i]
+            signature = await owner.signMessage(message);
+            let sig = ethers.utils.splitSignature(signature);
+            await rewardsPayments.connect(accounts[i]).payReward(message, sig.v,sig.r,sig.s)
+        }
+
+        for(let j = 0; j < 5; j++){
+            let contract_balance = await tokens[j].balanceOf(rewardsPayments.address)
+            after_contract_balances.push(contract_balance)
+        }
+        let after_contract_nft_balance = await nft.balanceOf(rewardsPayments.address)
+        // expect(contract_balance).to.eq(init_balances.owner.sub(amount))
+        console.log(before_contract_balances, after_contract_balances, before_contract_nft_balance, after_contract_nft_balance)
+
     })
-    it("check ", async () => {
+    it("No rewards for sender", async () => {
+        let arguments = createRewardList(accounts, tokens)
+        console.log(arguments)
+        let tokensAmount = rewardTokensSum(arguments)
+
+        await rewardsPayments.createRewardRound(arguments)
+        let before_contract_balances = []
+        let after_contract_balances = []
+        
+
+        let before_contract_nft_balance = await nft.balanceOf(rewardsPayments.address)
+
+        for(let j = 0; j < 5; j++){
+            let contract_balance = await tokens[j].balanceOf(rewardsPayments.address)
+            before_contract_balances.push(contract_balance)
+        }
+        console.log(before_contract_balances)
+        for(let i = 0; i < accounts.length; i++){
+            let message = accounts[i].address
+            // let owner = accounts[i]
+            signature = await owner.signMessage(message);
+            let sig = ethers.utils.splitSignature(signature);
+            await rewardsPayments.connect(accounts[i]).payReward(message, sig.v,sig.r,sig.s)
+        }
+
+        for(let j = 0; j < 5; j++){
+            let contract_balance = await tokens[j].balanceOf(rewardsPayments.address)
+            after_contract_balances.push(contract_balance)
+        }
+        let after_contract_nft_balance = await nft.balanceOf(rewardsPayments.address)
+        // expect(contract_balance).to.eq(init_balances.owner.sub(amount))
+        console.log(before_contract_balances, after_contract_balances, before_contract_nft_balance, after_contract_nft_balance)
+        let message = owner.address
+        signature = await owner.signMessage(message);
+        let sig = ethers.utils.splitSignature(signature);
+        try{
+            await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
+        } catch (error){
+            let errorMsg = 'PaymentStatuses: No rewards for sender'
+            assert.equal(error.toString().includes(errorMsg), true, errorMsg)
+            // expect(error.toString).to.eq('PaymentStatuses: No rewards for sender')
+        }
+        // await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
     })
-    it("check ", async () => {
-    })
-    it("check ", async () => {
-    })
-    it("check ", async () => {
-    })
+    // it("check ", async () => {
+    // })
+    // it("check ", async () => {
+    // })
+    // it("check ", async () => {
+    // })
+    // it("check ", async () => {
+    // })
 
 
     // let arguments = createRandomList()

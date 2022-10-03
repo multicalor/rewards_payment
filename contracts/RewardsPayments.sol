@@ -147,6 +147,8 @@ contract RewardsPayments is Ownable {
             rewardsTokensAmount[roundId][tokenAddress] = roundTokenBalance - amount;
         }
         for(uint8 i = 0; i < recipientsRewards[msg.sender].nftIds.length; i++) {
+            // NFT.ownerOf(address(this))
+            require( amountNfts[roundId] > 0 && NFT.balanceOf(address(this) ) > 0, "PaymentStatuses: ");
             NFT.safeTransferFrom(address(this), msg.sender, recipientsRewards[msg.sender].nftIds[i]);
             amountNfts[roundId]--;
         }
