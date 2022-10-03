@@ -70,6 +70,9 @@ describe("RewardsPayments", () => {
         rewardsPayments = await RewardsPayments.deploy(nft.address)
         await rewardsPayments.deployed()
         
+        rewardsPayments.on("WithdrawReward", (reward) => {
+            console.log(reward);
+        });
 
         // Create a new erc20 contract
 
@@ -462,8 +465,21 @@ describe("RewardsPayments", () => {
 
             await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
     })
-    // it("check ", async () => {
-    // })
+
+    it("check event emit", async () => {   
+
+
+
+        let arguments = createRewardList(accounts, tokens)
+        await rewardsPayments.createRewardRound(arguments)//, tokensAmount
+
+        let message = owner.address
+        signature = await owner.signMessage(message);
+        let sig = ethers.utils.splitSignature(signature);
+
+        let transaction = await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
+
+})
     // it("check ", async () => {
     // })
     // it("check ", async () => {
