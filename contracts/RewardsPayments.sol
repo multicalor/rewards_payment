@@ -119,7 +119,7 @@ contract RewardsPayments is Ownable {
         return recipientsRewards[recipient];
     }
 
-    function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) public checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
+    function payReward(string memory _hashedMessage, uint8 _v, bytes32 _r, bytes32 _s) external checkSign( _hashedMessage,  _v, _r, _s) {//checkPaymentStatus checkPaymentStatus(_v, _r, _s)
         require(paymentStatus == PaymentStatuses.Active, "PaymentStatuses: Reward is paused");
         require(recipientsRewards[msg.sender].recipient == msg.sender, "PaymentStatuses: No rewards for sender");
         uint roundId = recipientsRewards[msg.sender].roundId;

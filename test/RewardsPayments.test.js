@@ -360,13 +360,6 @@ describe("RewardsPayments", () => {
         // https://docs.ethers.io/v4/cookbook-signing.html
         // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
     })
-
-    // it("NFT tests", async () => {
-    //     let nftId = '1'
-    //     // res = await rewardsPayments.testNft(nftId)
-
-    //     // console.log(res)
-    // })
     it("check duplicate addresses in rewards", async () => {
     })
     it("check payment change status", async () => {
@@ -449,8 +442,27 @@ describe("RewardsPayments", () => {
         }
         // await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
     })
-    // it("check ", async () => {
-    // })
+    it("check rewards pause", async () => {   
+            let arguments = createRewardList(accounts, tokens)
+            await rewardsPayments.createRewardRound(arguments)//, tokensAmount
+    
+            let message = owner.address
+            signature = await owner.signMessage(message);
+            let sig = ethers.utils.splitSignature(signature);
+
+            await rewardsPayments.changePaymentStatus('1')
+
+            try{
+                await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
+            } catch (error){
+                let errorMsg = 'PaymentStatuses: Reward is paused'
+                assert.equal(error.toString().includes(errorMsg), true, errorMsg)
+            }
+
+            await rewardsPayments.changePaymentStatus('0')
+
+            await rewardsPayments.connect(acc1).payReward(message, sig.v,sig.r,sig.s)
+    })
     // it("check ", async () => {
     // })
     // it("check ", async () => {
