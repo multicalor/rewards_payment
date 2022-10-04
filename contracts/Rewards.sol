@@ -45,7 +45,7 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract Rewarder is Ownable{
 
-    using ECDSA for bytes32;
+    // using ECDSA for bytes32;
 
     using SafeERC20 for IERC20;
 
@@ -67,15 +67,16 @@ contract Rewarder is Ownable{
         address recipient;
         Token[] tokens;
         uint [] nftIds;
+        // bytes32 msgHash(_signature, _UUID, _rewardReceipts);
         //Описать какие данные мы подписываем
         //отправителя, адрес токена, сумму, токенИД для НФТ
     }
-    struct Reward {
-        uint roundId;
-        address recipient;
-        Token[] tokens;
-        uint [] nftIds;
-    }
+    // struct Reward {
+    //     uint roundId;
+    //     address recipient;
+    //     Token[] tokens;
+    //     uint [] nftIds;
+    // }
 
     // struct CreateRewardRoundInterface {
     //     address recipient;
@@ -95,9 +96,9 @@ contract Rewarder is Ownable{
     uint rewardRoundId;
 
     function createRewards(
-        address [] memory _rewardReceipts,
+        RewardReceipt [] memory _rewardReceipts,
         bytes32 [] memory _msgHash,
-        uint [] calldata _UUID,
+        // bytes32 [] calldata _UUID,
         Token [] calldata _tokens, 
         uint _amountNft
         ) public{
@@ -105,6 +106,14 @@ contract Rewarder is Ownable{
         for(uint i = 0; i <_tokens.length; i++){
             tokens.push(Token(_tokens[i].tokenAddress, _tokens[i].amount));
         }
+
+        for(uint i = 0; i <_rewardReceipts.length; i++){
+            address recipient = _rewardReceipts[i].recipient;
+            // bytes32 UUID = _UUID[i];
+            // bytes32 msgHash = keccak256(abi.encode(recipient, _UUID, _rewardReceipts));
+            executed[_msgHash[i]] = false;
+        }
+        
         rewardRoundId++;
     }
     
@@ -114,12 +123,11 @@ contract Rewarder is Ownable{
         bytes32 _s,
         bytes32 _UUID,//uuid to proceed identical receipts to always generate different hashes
         RewardReceipt[] calldata _rewardReceipts
-    ) public view {
-        // address sender = 
+    ) public {
         bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipts)); //воссоздаем сообщение которое подписывали на сервере
         // bytes32 msgHash = keccak256(abi.encode(recipient, _UUID, _rewardReceipts)); 
         require(!executed[msgHash], "Rewarder: Has been executed!"); //проверяем что по этой подписи не выплачивали еще
-        // executed[msgHash] = true; 
+        executed[msgHash] = true; 
         // ECDSA.recover(msgHash.toEthSignedMessageHash(), _signature);
         address _signer = verifyHash(msgHash, _v, _r, _s);
         require(_signer == signer, "Rewarder: signer not recovered from signed tx!"); //msgHash.toEthSignedMessageHash(),

@@ -230,7 +230,7 @@ describe("RewardsPayments", () => {
         const RewardReceiptArray = [
             {
                 recipient: owner.address,
-                tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0')}],
+                tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('1')}],
                 nftIds:[1,2]
             },
             {
@@ -306,7 +306,9 @@ describe("RewardsPayments", () => {
         // RewardReceipt[] calldata _rewardReceipts
         let recovered = await rewarder.getRewards(sig.v, sig.r, sig.s, _UUID, RewardReceiptArray)
         // recovered = await recovered.wait();
-        console.log({recovered, owner:owner.address, msgHash, signer})
+        // console.log({recovered, owner:owner.address, msgHash, signer})
+        let rewardList = createRewardList(accounts, tokens)
+        console.log(rewardList)
         // console.log(accounts.map(account=> account.address))
         // console.log({sign: owner.address == recovered})
         // let messageHash = ethers.utils.id("Hello World");
