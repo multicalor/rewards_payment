@@ -71,7 +71,7 @@ describe("RewardsPayments", () => {
         await rewardsPayments.deployed()
         
         rewardsPayments.on("WithdrawReward", (reward) => {
-            console.log(reward);
+            console.log("test event");
         });
 
         // Create a new erc20 contract
@@ -214,12 +214,12 @@ describe("RewardsPayments", () => {
         // console.log({signer:recovered == owner.address})
 
         // hashMessage
-        let messageHash = ethers.utils.id("Hello World");
+        let messageHash ='0x02e53202499fa0471affba34f83203da6ddd2de7534c114086ff09b739bf7b2b'// ethers.utils.id("Hello World");
         let messageHashBytes = ethers.utils.arrayify(messageHash)
         let flatSig = await owner.signMessage(messageHashBytes);
         let sig = ethers.utils.splitSignature(flatSig);
         let recovered = await rewardsPayments.verifyHash(messageHash, sig.v, sig.r, sig.s);
-        // console.log({sign: owner.address == recovered})
+        console.log({sign: owner.address == recovered})
 
         // https://docs.ethers.io/v4/cookbook-signing.html
         // https://www.web3.university/article/how-to-verify-a-signed-message-in-solidity
