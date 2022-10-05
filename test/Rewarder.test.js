@@ -105,8 +105,6 @@ async function createRoundRewardList(
     let nftIds = [];
     recipients.push(account.address);
     for (let i = 0; i < 5; i++) {
-      //
-
       tokensArg.push({
         tokenAddress: tokens[i].address,
         amount: ethers.utils.parseUnits("1", "mwei"),
