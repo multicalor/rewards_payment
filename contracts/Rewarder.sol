@@ -146,9 +146,7 @@ contract Rewarder is Ownable{
 
     function verifyHash(bytes32 _hash, uint8 _v, bytes32 _r, bytes32 _s) internal pure
         returns (address signer) {
-
         bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));//(...));
-
         return ecrecover(messageDigest, _v, _r, _s);
     }
 
@@ -160,5 +158,4 @@ contract Rewarder is Ownable{
     ) external pure returns (bytes4){
         return IERC721Receiver.onERC721Received.selector;
     }
-
 }

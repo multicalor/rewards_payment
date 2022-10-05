@@ -109,7 +109,6 @@ async function createRoundRewardList(
         tokenAddress: tokens[i].address,
         amount: ethers.utils.parseUnits("1", "mwei"),
       });
-
       nftIds.push(tokenId);
       tokenId++;
     }
