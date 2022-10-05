@@ -439,7 +439,7 @@ describe("RewardsPayments", () => {
     for(let i = 0; i < rewards.length; i++){
         let txWdRw = await rewarder.connect(accounts[i]).getRewards(signature[i].v, signature[i].r, signature[i].s, UUID[i], rewards[i])
     }
-    let txWdRw = await rewarder.getRewards(signature[0].v.toString(), signature[0].r, signature[0].s, UUID[0], rewards[0])
+    // let txWdRw = await rewarder.getRewards(signature[0].v.toString(), signature[0].r, signature[0].s, UUID[0], rewards[0])
 
 
         // let messageHashBytes = ethers.utils.arrayify(msgHash)
@@ -508,6 +508,28 @@ describe("RewardsPayments", () => {
 
         // let recovered = await rewarder.test1(_UUID)
         // console.log({recovered})
+    })
+
+    it("send rewards", async () => {
+        const {UUID, recipients, rewards, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens)
+
+        let txCrRew = await rewarder.createRewards(recipients, msgHash, tokensSum, amountNft)
+
+    signature = []
+    for(let i = 0; i < msgHash.length; i++){
+        // let _msgHash = createMsgHash(recipients[i], UUID[i], rewards[i])
+        // msgHash.push(_msgHash)
+        // let messageHashBytes = ethers.utils.arrayify(msgHash[i])
+        let sig = await signHashMsg(owner, msgHash[i])
+        signature.push(sig)
+    }
+    // let txWdRw = await rewarder.getRewards(signature[0].v.toString(), signature[0].r, signature[0].s, UUID[0], rewards[0])
+    // let txWdRw1 = await rewarder.getRewards(signature[0].v.toString(), signature[1].r, signature[1].s, UUID[1], rewards[1])
+    console.log(rewards)
+    for(let i = 0; i < rewards.length; i++){
+        let txWdRw = await rewarder.connect(accounts[i]).getRewards(signature[i].v, signature[i].r, signature[i].s, UUID[i], rewards[i])
+    }
+    // let txWdRw = await rewarder.getRewards(signature[0].v.toString(), signature[0].r, signature[0].s, UUID[0], rewards[0])
     })
 
 })
