@@ -93,10 +93,12 @@ contract Rewarder is Ownable{
     mapping(bytes32 => bool) public executed;
     mapping(uint => Token[]) public amountTokensRewardRound;
     mapping(uint => uint) public amountNftReward;   
+    mapping(uint => address[]) public recipients;
     uint rewardRoundId;
 
     function createRewards(
-        RewardReceipt [] memory _rewardReceipts,
+        // RewardReceipt [] memory _rewardReceipts,
+        address [] memory _recipients,
         bytes32 [] memory _msgHash,
         // bytes32 [] calldata _UUID,
         Token [] calldata _tokens, 
@@ -107,11 +109,13 @@ contract Rewarder is Ownable{
             tokens.push(Token(_tokens[i].tokenAddress, _tokens[i].amount));
         }
 
-        for(uint i = 0; i <_rewardReceipts.length; i++){
-            address recipient = _rewardReceipts[i].recipient;
+        for(uint i = 0; i <_recipients.length; i++){
+            // recipients[i] = _recipients[i];
+            recipients[i].push(_recipients[i]);
             // bytes32 UUID = _UUID[i];
             // bytes32 msgHash = keccak256(abi.encode(recipient, _UUID, _rewardReceipts));
-            executed[_msgHash[i]] = false;
+
+            executed[_msgHash[i]] = true;
         }
         
         rewardRoundId++;
@@ -122,12 +126,12 @@ contract Rewarder is Ownable{
         bytes32 _r,
         bytes32 _s,
         bytes32 _UUID,//uuid to proceed identical receipts to always generate different hashes
-        RewardReceipt[] calldata _rewardReceipts
+        RewardReceipt calldata _rewardReceipts
     ) public {
         bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipts)); //воссоздаем сообщение которое подписывали на сервере
         // bytes32 msgHash = keccak256(abi.encode(recipient, _UUID, _rewardReceipts)); 
-        require(!executed[msgHash], "Rewarder: Has been executed!"); //проверяем что по этой подписи не выплачивали еще
-        executed[msgHash] = true; 
+        require(executed[msgHash], "Rewarder: Has been executed!"); //проверяем что по этой подписи не выплачивали еще
+        executed[msgHash] = false; 
         // ECDSA.recover(msgHash.toEthSignedMessageHash(), _signature);
         address _signer = verifyHash(msgHash, _v, _r, _s);
         require(_signer == signer, "Rewarder: signer not recovered from signed tx!"); //msgHash.toEthSignedMessageHash(),
@@ -143,9 +147,14 @@ contract Rewarder is Ownable{
         bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipts)); 
     }
 
-    function test(address recipient, bytes32 _UUID, RewardReceipt[] calldata _rewardReceipts ) public view returns(bytes32){
-        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipts)); 
+    function test(address recipient, bytes32 _UUID, RewardReceipt calldata _rewardReceipt ) public view returns(bytes32){
+        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipt)); 
         return msgHash;
+    }
+
+    function test1(bytes32  _msgHash) public view returns(bool){
+        
+        return executed [_msgHash];
     }
 
     function verifyHash(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public pure

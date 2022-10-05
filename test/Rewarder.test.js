@@ -1,29 +1,52 @@
 const {expect, assert} = require('chai')
 const {ethers} = require('hardhat')
 
-function createRewardList(accounts, tokens) {
-
-    // let nftIds = []
-    let tokenId = 0
-    // for(let i = 0; i < 5; i++){//
-    //     tokensArg.push({tokenAddress: tokens[i].address, amount:ethers.utils.parseUnits('1', 'mwei')})
-    //     let nftId = tokenId+i
-    //     nftIds.push(nftId)
-    // }
-
-    let rewards = accounts.map((account)=>{
-        let tokensArg = []
-        let nftIds = []
-        for(let i = 0; i < 5; i++){//
-            tokensArg.push({tokenAddress: tokens[i].address, amount:ethers.utils.parseUnits('1', 'mwei')})
-            // let nftId = tokenId+i
-            nftIds.push(tokenId)
-            tokenId++
+function createMsgHash(address, UUID, RewardReceipt){
+    index = [
+        {
+          "type": "address"
+        },
+        {
+          "type": "bytes32"
+        },
+        {
+          "components": [
+            {
+              "name": "recipient",
+              "type": "address"
+            },
+            {
+              "components": [
+                {
+                  "name": "tokenAddress",
+                  "type": "address"
+                },
+                {
+                  "name": "amount",
+                  "type": "uint256"
+                }
+              ],
+              "name": "tokens",
+              "type": "tuple[]"
+            },
+            {
+              "name": "nftIds",
+              "type": "uint256[]"
+            }
+          ],
+          "type": "tuple"
         }
-        return {recipient:account.address, tokens: tokensArg, nftIds}
-    })
-    return rewards
+    ]
+    let msgHash = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+            index,
+
+            [ address, UUID, RewardReceipt ],
+        )
+    )
+    return msgHash
 }
+
 function rewardTokensSum(rewards){
     let amount = []
     let tmpArrAddresses = []
@@ -48,6 +71,77 @@ function rewardTokensSum(rewards){
     })
     return amount
 }
+
+async function signHashMsg(signer, msgHash){
+    let messageHashBytes = ethers.utils.arrayify(msgHash)
+    let flatSig = await signer.signMessage(messageHashBytes);
+    let sig = ethers.utils.splitSignature(flatSig);
+    return sig
+}
+
+function createSigningRewardList(accounts, tokens) {
+    
+    let tokenId = 0
+    let UUID = []
+    let msgHash = []
+    let recipients = []
+    let rewards = accounts.map((account, i)=>{
+        let tokensArg = []
+        let nftIds = []
+        recipients.push(account.address)
+        for(let i = 0; i < 5; i++){//
+
+            tokensArg.push({tokenAddress: tokens[i].address, amount:ethers.utils.parseUnits('1', 'mwei')})
+            
+            nftIds.push(tokenId)
+            tokenId++
+        }
+
+        let _UUID = ethers.utils.keccak256(
+            ethers.utils.defaultAbiCoder.encode(['address'],[account.address])
+        )
+        UUID.push(_UUID)
+
+
+        
+        return {recipient:account.address, tokens: tokensArg, nftIds}
+    })
+    for(let i = 0; i < rewards.length; i++){
+        let _msgHash = createMsgHash(rewards[i].recipient, UUID[i], rewards[i])
+        msgHash.push(_msgHash)
+    }
+
+    let tokensSum = rewardTokensSum(rewards)
+    return {UUID, recipients, rewards, msgHash, tokensSum, amountNft:tokenId}//signature,
+}
+
+
+
+
+// function rewardTokensSum(rewards){
+//     let amount = []
+//     let tmpArrAddresses = []
+//     rewards.forEach((elem)=>{
+//         elem.tokens.forEach((token)=>{              
+//             tmpArrAddresses.push(token.tokenAddress)
+//         })
+//     })
+//     tmpArrAddresses = tmpArrAddresses.filter((it, index) => index === tmpArrAddresses.indexOf(it = it.trim()));
+//     // let Token = {tokenAddress: '', amount:ethers.utils.parseEther('0') }
+//     tmpArrAddresses.forEach((tokenAddress)=>{
+//         let Token = {tokenAddress: tokenAddress, amount:ethers.utils.parseEther('0') }
+//         // Token[tokenAddress] = tokenAddress
+//         rewards.forEach((elem)=>{
+//             elem.tokens.forEach((token)=>{     
+//                 if(Token.tokenAddress === token.tokenAddress){
+//                     Token.amount = Token.amount.add(token.amount)
+//                 }
+//             })
+//         })
+//         amount.push(Token)
+//     })
+//     return amount
+// }
 
 
 describe("RewardsPayments", () => {
@@ -128,25 +222,19 @@ describe("RewardsPayments", () => {
             ethers.utils.defaultAbiCoder.encode(['address'],[acc1.address])
           )
 
-        const RewardReceiptArray = [
-            {
-                recipient: owner.address,
-                tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0')}],
-                nftIds:[1,2]
-            },
-            {
+        const RewardReceipt = {
                 recipient: acc1.address,
                 tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0')}],
                 nftIds:[1,2]
             }
 
-        ]
+        
         
         // console.log(acc1.address, _UUID, [
         //     {tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0'), nftIds:[1,2]}]
         //     )
 
-            let inputsIndex = [
+        let index = [
             {
               "type": "address"
             },
@@ -178,19 +266,19 @@ describe("RewardsPayments", () => {
                   "type": "uint256[]"
                 }
               ],
-              "type": "tuple[]"
+              "type": "tuple"
             }
           ]
 
         let expect = ethers.utils.keccak256(
             ethers.utils.defaultAbiCoder.encode(
-                inputsIndex,
+                index,
 
-                [ owner.address, _UUID, RewardReceiptArray ],
+                [ owner.address, _UUID, RewardReceipt ],
             )
         )
         console.log({expect})
-        let res = await rewarder.test(acc1.address, _UUID, RewardReceiptArray )
+        let res = await rewarder.test(acc1.address, _UUID, RewardReceipt )
         console.log(res == expect,res )
 
         // tokens = [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0'),nftIds:[1,2]}]
@@ -223,65 +311,72 @@ describe("RewardsPayments", () => {
 // https://ethereum.stackexchange.com/questions/122221/how-to-use-function-recover-from-ecdsa-library
 
     it("reward has created", async () => {
-        let _UUID = ethers.utils.keccak256(
-            ethers.utils.defaultAbiCoder.encode(['address'],[acc1.address])
-          )
 
-        const RewardReceiptArray = [
-            {
-                recipient: owner.address,
-                tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('1')}],
-                nftIds:[1,2]
-            },
-            {
-                recipient: acc1.address,
-                tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0')}],
-                nftIds:[1,2]
-            }
+    const {recipients, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens)
 
-        ]
-        let inputsIndex = [
-            {
-              "type": "address"
-            },
-            {
-              "type": "bytes32"
-            },
-            {
-              "components": [
-                {
-                  "name": "recipient",
-                  "type": "address"
-                },
-                {
-                  "components": [
-                    {
-                      "name": "tokenAddress",
-                      "type": "address"
-                    },
-                    {
-                      "name": "amount",
-                      "type": "uint256"
-                    }
-                  ],
-                  "name": "tokens",
-                  "type": "tuple[]"
-                },
-                {
-                  "name": "nftIds",
-                  "type": "uint256[]"
-                }
-              ],
-              "type": "tuple[]"
-            }
-          ]
+        let txCrRew = await rewarder.createRewards(recipients, msgHash, tokensSum, amountNft)
 
-        let msgHash = ethers.utils.keccak256(
-            ethers.utils.defaultAbiCoder.encode(
-                inputsIndex,
-                [ owner.address, _UUID, RewardReceiptArray ],
-            )
-        )
+        // let _UUID = ethers.utils.keccak256(
+        //     ethers.utils.defaultAbiCoder.encode(['address'],[acc1.address])
+        //   )
+
+        // const RewardReceiptArray = [
+        //     {
+        //         recipient: owner.address,
+        //         tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('1')}],
+        //         nftIds:[1,2]
+        //     },
+        //     {
+        //         recipient: acc1.address,
+        //         tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0')}],
+        //         nftIds:[1,2]
+        //     }
+
+        // ]
+        // let inputsIndex = [
+        //     {
+        //       "type": "address"
+        //     },
+        //     {
+        //       "type": "bytes32"
+        //     },
+        //     {
+        //       "components": [
+        //         {
+        //           "name": "recipient",
+        //           "type": "address"
+        //         },
+        //         {
+        //           "components": [
+        //             {
+        //               "name": "tokenAddress",
+        //               "type": "address"
+        //             },
+        //             {
+        //               "name": "amount",
+        //               "type": "uint256"
+        //             }
+        //           ],
+        //           "name": "tokens",
+        //           "type": "tuple[]"
+        //         },
+        //         {
+        //           "name": "nftIds",
+        //           "type": "uint256[]"
+        //         }
+        //       ],
+        //       "type": "tuple[]"
+        //     }
+        //   ]
+
+        // let msgHash = ethers.utils.keccak256(
+        //     ethers.utils.defaultAbiCoder.encode(
+        //         inputsIndex,
+        //         [ owner.address, _UUID, RewardReceiptArray ],
+        //     )
+        // )
+
+        
 
         // const signature = await owner.signMessage(
         //     ethers.utils.arrayify(
@@ -295,20 +390,24 @@ describe("RewardsPayments", () => {
         //   );
         // let messageHash = ethers.utils.id(msgHash);
         
-        let messageHashBytes = ethers.utils.arrayify(msgHash)
-        let flatSig = await owner.signMessage(messageHashBytes);
-        let signer = ethers.utils.verifyMessage( msgHash , flatSig )
-        let sig = ethers.utils.splitSignature(flatSig);
+        // let messageHashBytes = ethers.utils.arrayify(msgHash)
+        // let flatSig = await owner.signMessage(messageHashBytes);
+        // let sig = ethers.utils.splitSignature(flatSig);
+        // let signer = ethers.utils.verifyMessage( msgHash , flatSig )
+
+        // let recovered = await rewarder.createRewards()
+
+        // let recovered = await rewarder.getRewards(sig.v, sig.r, sig.s, _UUID, RewardReceiptArray)
         // console.log({sig, signature})
 
         // bytes32 _signature,
         // bytes32 _UUID,//uuid to proceed identical receipts to always generate different hashes
         // RewardReceipt[] calldata _rewardReceipts
-        let recovered = await rewarder.getRewards(sig.v, sig.r, sig.s, _UUID, RewardReceiptArray)
+        
         // recovered = await recovered.wait();
         // console.log({recovered, owner:owner.address, msgHash, signer})
-        let rewardList = createRewardList(accounts, tokens)
-        console.log(rewardList)
+        // let rewardList = createRewardList(accounts, tokens)
+        // console.log(rewardList)
         // console.log(accounts.map(account=> account.address))
         // console.log({sign: owner.address == recovered})
         // let messageHash = ethers.utils.id("Hello World");
@@ -319,6 +418,96 @@ describe("RewardsPayments", () => {
             // console.log({sign: owner.address == recovered})
 
 
+    })
+
+    it("create and withdraw rewards", async () => {
+        const {UUID, recipients, rewards, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens)
+
+        let txCrRew = await rewarder.createRewards(recipients, msgHash, tokensSum, amountNft)
+
+    signature = []
+    for(let i = 0; i < msgHash.length; i++){
+        // let _msgHash = createMsgHash(recipients[i], UUID[i], rewards[i])
+        // msgHash.push(_msgHash)
+        // let messageHashBytes = ethers.utils.arrayify(msgHash[i])
+        let sig = await signHashMsg(owner, msgHash[i])
+        signature.push(sig)
+    }
+    // let txWdRw = await rewarder.getRewards(signature[0].v.toString(), signature[0].r, signature[0].s, UUID[0], rewards[0])
+    // let txWdRw1 = await rewarder.getRewards(signature[0].v.toString(), signature[1].r, signature[1].s, UUID[1], rewards[1])
+    console.log(msgHash)
+    for(let i = 0; i < rewards.length; i++){
+        let txWdRw = await rewarder.connect(accounts[i]).getRewards(signature[i].v, signature[i].r, signature[i].s, UUID[i], rewards[i])
+    }
+    let txWdRw = await rewarder.getRewards(signature[0].v.toString(), signature[0].r, signature[0].s, UUID[0], rewards[0])
+
+
+        // let messageHashBytes = ethers.utils.arrayify(msgHash)
+        // let flatSig = await owner.signMessage(messageHashBytes);
+        // let sig = ethers.utils.splitSignature(flatSig);
+        // console.log(signingRewards)
+        // let _UUID = ethers.utils.keccak256(
+        //     ethers.utils.defaultAbiCoder.encode(['address'],[acc1.address])
+        //   )
+
+        // const RewardReceiptArray = [
+        //     {
+        //         recipient: owner.address,
+        //         tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('1')}],
+        //         nftIds:[1,2]
+        //     },
+        //     {
+        //         recipient: acc1.address,
+        //         tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0')}],
+        //         nftIds:[1,2]
+        //     }
+
+        // ]
+        // let inputsIndex = [
+        //     {
+        //       "type": "address"
+        //     },
+        //     {
+        //       "type": "bytes32"
+        //     },
+        //     {
+        //       "components": [
+        //         {
+        //           "name": "recipient",
+        //           "type": "address"
+        //         },
+        //         {
+        //           "components": [
+        //             {
+        //               "name": "tokenAddress",
+        //               "type": "address"
+        //             },
+        //             {
+        //               "name": "amount",
+        //               "type": "uint256"
+        //             }
+        //           ],
+        //           "name": "tokens",
+        //           "type": "tuple[]"
+        //         },
+        //         {
+        //           "name": "nftIds",
+        //           "type": "uint256[]"
+        //         }
+        //       ],
+        //       "type": "tuple[]"
+        //     }
+        //   ]
+
+        // let msgHash = ethers.utils.keccak256(
+        //     ethers.utils.defaultAbiCoder.encode(
+        //         inputsIndex,
+        //         [ owner.address, _UUID, RewardReceiptArray ],
+        //     )
+        // )
+
+        // let recovered = await rewarder.test1(_UUID)
+        // console.log({recovered})
     })
 
 })
