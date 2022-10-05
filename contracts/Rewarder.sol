@@ -92,6 +92,7 @@ contract Rewarder is Ownable{
         Token [] calldata _tokens, 
         uint _amountNft
         ) external{
+        require(_tokens.length <= 5, "Rewarder: Only five tokens types");
         for(uint i = 0; i < _tokens.length; i++) {
             rewardsTokensAmount[rewardRoundId][_tokens[i].tokenAddress] = _tokens[i].amount;
         }
@@ -111,7 +112,7 @@ contract Rewarder is Ownable{
         bytes32 _UUID,
         RewardReceipt calldata _rewardReceipt
     ) external checkPaymentStatus{
-        require(paymentStatus == PaymentStatuses.Active, "PaymentStatuses: Reward is paused");
+        require(paymentStatus == PaymentStatuses.Active, "Rewarder: Reward is paused");
         bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipt)); 
         require(executed[msgHash], "Rewarder: Has been executed!"); 
         executed[msgHash] = false; 
