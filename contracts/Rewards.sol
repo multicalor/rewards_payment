@@ -45,8 +45,6 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 contract Rewarder is Ownable{
 
-    // using ECDSA for bytes32;
-
     using SafeERC20 for IERC20;
 
     IERC721 NFT;
@@ -68,62 +66,38 @@ contract Rewarder is Ownable{
         Token[] tokens;
         uint [] nftIds;
         uint256 roundId;
-        // bytes32 msgHash(_signature, _UUID, _rewardReceipts);
-        //Описать какие данные мы подписываем
-        //отправителя, адрес токена, сумму, токенИД для НФТ
     }
-    // struct Reward {
-    //     uint roundId;
-    //     address recipient;
-    //     Token[] tokens;
-    //     uint [] nftIds;
-    // }
-
-    // struct CreateRewardRoundInterface {
-    //     address recipient;
-    //     Token[] tokens;
-    //     uint [] nftIds;
-    // }
 
     struct Token {
         address tokenAddress;
         uint amount;
     }
 
-    // mapping(uint => mapping(address => bool)) public executed;
     mapping(bytes32 => bool) public executed;
-    mapping(uint => Token[]) public amountTokensRewardRound;
     mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
     mapping(uint => uint) public amountNftRound;   
-    mapping(uint => address[]) public recipients;
+    mapping(uint => address[]) public recipients; // в принципе можно без него, так как он хешируется в RewardReceipt
     uint rewardRoundId;
 
+    event WithdrawReward(RewardReceipt reward);
+
+    modifier checkPaymentStatus(){
+        require(paymentStatus == PaymentStatuses.Active, 'Rewarder: Payment status is paused');
+        _;
+    }
+
     function createRewards(
-        // RewardReceipt [] memory _rewardReceipts,
         address [] memory _recipients,
         bytes32 [] memory _msgHash,
-        // bytes32 [] calldata _UUID,
         Token [] calldata _tokens, 
         uint _amountNft
-        ) public{
-        // Token[] storage tokens =  amountTokensRewardRound[rewardRoundId];
-        // for(uint i = 0; i <_tokens.length; i++){
-        //     tokens.push(Token(_tokens[i].tokenAddress, _tokens[i].amount));
-        // }
+        ) external{
         for(uint i = 0; i < _tokens.length; i++) {
             rewardsTokensAmount[rewardRoundId][_tokens[i].tokenAddress] = _tokens[i].amount;
-        //     uint rewardOfToken = rewardsTokensAmount[rewardRoundId]._tokens[j].tokenAddress;
-        //     address tokenAddress = _tokens[j].tokenAddress;
-        //     uint amount = _tokens[j].amount;
-        //     rewardsTokensAmount[rewardRoundId][tokenAddress] = rewardOfToken + amount;
         }
         amountNftRound[rewardRoundId] = _amountNft;
         for(uint i = 0; i <_recipients.length; i++){
-            // recipients[i] = _recipients[i];
             recipients[i].push(_recipients[i]);
-            // bytes32 UUID = _UUID[i];
-            // bytes32 msgHash = keccak256(abi.encode(recipient, _UUID, _rewardReceipts));
-
             executed[_msgHash[i]] = true;
         }
         
@@ -134,59 +108,47 @@ contract Rewarder is Ownable{
         uint8 _v,
         bytes32 _r,
         bytes32 _s,
-        bytes32 _UUID,//uuid to proceed identical receipts to always generate different hashes
+        bytes32 _UUID,
         RewardReceipt calldata _rewardReceipt
-    ) public {
-        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipt)); //воссоздаем сообщение которое подписывали на сервере
-        // bytes32 msgHash = keccak256(abi.encode(recipient, _UUID, _rewardReceipts)); 
-        require(executed[msgHash], "Rewarder: Has been executed!"); //проверяем что по этой подписи не выплачивали еще
+    ) external checkPaymentStatus{
+        require(paymentStatus == PaymentStatuses.Active, "PaymentStatuses: Reward is paused");
+        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipt)); 
+        require(executed[msgHash], "Rewarder: Has been executed!"); 
         executed[msgHash] = false; 
-        // ECDSA.recover(msgHash.toEthSignedMessageHash(), _signature);
         address _signer = verifyHash(msgHash, _v, _r, _s);
-        require(_signer == signer, "Rewarder: signer not recovered from signed tx!"); //msgHash.toEthSignedMessageHash(),
-        // require(msgHash.toEthSignedMessageHash().recover( _signature ) == signer, "Rewarder:: signer not recovered from signed tx!"); //msgHash.toEthSignedMessageHash(),
+        require(_signer == signer, "Rewarder: signer not recovered from signed tx!");
         uint roundId = _rewardReceipt.roundId;
         for(uint8 i = 0; i < _rewardReceipt.tokens.length; i++) {
+            // Переменные созданы для урощения понимания, в боевом контракте сделал бы без них
             address tokenAddress =_rewardReceipt.tokens[i].tokenAddress;
             uint amount = _rewardReceipt.tokens[i].amount;
             uint roundTokenBalance = rewardsTokensAmount[roundId][tokenAddress];
             uint contractBalance = IERC20(tokenAddress).balanceOf(address(this));
-            require(roundTokenBalance >= amount || contractBalance >= amount, "PaymentStatuses: Wrong reward balance");
+            require(roundTokenBalance >= amount || contractBalance >= amount, "Rewarder: Wrong reward balance");
             IERC20(tokenAddress).safeTransfer(msg.sender, amount);
             rewardsTokensAmount[roundId][tokenAddress] = roundTokenBalance - amount;
         }
         for(uint8 i = 0; i < _rewardReceipt.nftIds.length; i++) {
-            require( amountNftRound[roundId] > 0 && NFT.balanceOf(address(this)) > 0, "PaymentStatuses: ");
             uint nftId = _rewardReceipt.nftIds[i];
+            require(NFT.ownerOf(nftId) == address(this), "Rewarder: Wrong nftId");
+            require( amountNftRound[roundId] > 0 && NFT.balanceOf(address(this)) > 0, "Rewarder: No nft on contract");
+            
             NFT.safeTransferFrom(address(this), msg.sender, nftId);
             amountNftRound[roundId]--;
         }
+        emit WithdrawReward(_rewardReceipt);
     }
 
-    function msgHash(
-        bytes32 _signature,
-        bytes32 _UUID,//uuid to proceed identical receipts to always generate different hashes
-        RewardReceipt[] calldata _rewardReceipts
-    ) public view returns(bytes32){
-        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipts)); 
+    function changePaymentStatus(PaymentStatuses _status) external onlyOwner{
+        paymentStatus = _status;
     }
 
-    function test(address recipient, bytes32 _UUID, RewardReceipt calldata _rewardReceipt ) public view returns(bytes32){
-        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipt)); 
-        return msgHash;
-    }
-
-    function test1(bytes32  _msgHash) public view returns(bool){
-        
-        return executed [_msgHash];
-    }
-
-    function verifyHash(bytes32 hash, uint8 v, bytes32 r, bytes32 s) public pure
+    function verifyHash(bytes32 _hash, uint8 _v, bytes32 _r, bytes32 _s) internal pure
         returns (address signer) {
 
-        bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", hash));//(...));
+        bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", _hash));//(...));
 
-        return ecrecover(messageDigest, v, r, s);
+        return ecrecover(messageDigest, _v, _r, _s);
     }
 
     function onERC721Received(
@@ -199,4 +161,3 @@ contract Rewarder is Ownable{
     }
 
 }
-//Проверяем что данные соответствуют подписи и подписывал сервер
