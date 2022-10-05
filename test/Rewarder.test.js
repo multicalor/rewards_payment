@@ -32,6 +32,10 @@ function createMsgHash(address, UUID, RewardReceipt){
             {
               "name": "nftIds",
               "type": "uint256[]"
+            },
+            {
+                "name": "roundId",
+                "type": "uint256"
             }
           ],
           "type": "tuple"
@@ -79,7 +83,7 @@ async function signHashMsg(signer, msgHash){
     return sig
 }
 
-function createSigningRewardList(accounts, tokens) {
+function createSigningRewardList(accounts, tokens, roundId) {
     
     let tokenId = 0
     let UUID = []
@@ -104,7 +108,7 @@ function createSigningRewardList(accounts, tokens) {
 
 
         
-        return {recipient:account.address, tokens: tokensArg, nftIds}
+        return {recipient:account.address, tokens: tokensArg, nftIds, roundId}
     })
     for(let i = 0; i < rewards.length; i++){
         let _msgHash = createMsgHash(rewards[i].recipient, UUID[i], rewards[i])
@@ -225,7 +229,8 @@ describe("RewardsPayments", () => {
         const RewardReceipt = {
                 recipient: acc1.address,
                 tokens: [{tokenAddress: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0', amount:ethers.utils.parseEther('0')}],
-                nftIds:[1,2]
+                nftIds:[1,2],
+                roundId:0
             }
 
         
@@ -264,6 +269,10 @@ describe("RewardsPayments", () => {
                 {
                   "name": "nftIds",
                   "type": "uint256[]"
+                },
+                {
+                    "name": "roundId",
+                    "type": "uint256"
                 }
               ],
               "type": "tuple"
@@ -311,8 +320,8 @@ describe("RewardsPayments", () => {
 // https://ethereum.stackexchange.com/questions/122221/how-to-use-function-recover-from-ecdsa-library
 
     it("reward has created", async () => {
-
-    const {recipients, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens)
+    let roundId = 0
+    const {recipients, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens, roundId)
 
         let txCrRew = await rewarder.createRewards(recipients, msgHash, tokensSum, amountNft)
 
@@ -421,7 +430,8 @@ describe("RewardsPayments", () => {
     })
 
     it("create and withdraw rewards", async () => {
-        const {UUID, recipients, rewards, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens)
+        let roundId = 0
+        const {UUID, recipients, rewards, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens, roundId)
 
         let txCrRew = await rewarder.createRewards(recipients, msgHash, tokensSum, amountNft)
 
@@ -511,7 +521,9 @@ describe("RewardsPayments", () => {
     })
 
     it("send rewards", async () => {
-        const {UUID, recipients, rewards, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens)
+
+        let roundId = 0
+        const {UUID, recipients, rewards, msgHash, tokensSum, amountNft} = createSigningRewardList(accounts, tokens, roundId)
 
         let txCrRew = await rewarder.createRewards(recipients, msgHash, tokensSum, amountNft)
 

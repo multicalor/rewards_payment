@@ -67,6 +67,7 @@ contract Rewarder is Ownable{
         address recipient;
         Token[] tokens;
         uint [] nftIds;
+        uint256 roundId;
         // bytes32 msgHash(_signature, _UUID, _rewardReceipts);
         //Описать какие данные мы подписываем
         //отправителя, адрес токена, сумму, токенИД для НФТ
@@ -92,7 +93,8 @@ contract Rewarder is Ownable{
     // mapping(uint => mapping(address => bool)) public executed;
     mapping(bytes32 => bool) public executed;
     mapping(uint => Token[]) public amountTokensRewardRound;
-    mapping(uint => uint) public amountNftReward;   
+    mapping(uint => mapping(address => uint)) public rewardsTokensAmount;
+    mapping(uint => uint) public amountNftRound;   
     mapping(uint => address[]) public recipients;
     uint rewardRoundId;
 
@@ -104,11 +106,18 @@ contract Rewarder is Ownable{
         Token [] calldata _tokens, 
         uint _amountNft
         ) public{
-        Token[] storage tokens =  amountTokensRewardRound[rewardRoundId];
-        for(uint i = 0; i <_tokens.length; i++){
-            tokens.push(Token(_tokens[i].tokenAddress, _tokens[i].amount));
+        // Token[] storage tokens =  amountTokensRewardRound[rewardRoundId];
+        // for(uint i = 0; i <_tokens.length; i++){
+        //     tokens.push(Token(_tokens[i].tokenAddress, _tokens[i].amount));
+        // }
+        for(uint i = 0; i < _tokens.length; i++) {
+            rewardsTokensAmount[rewardRoundId][_tokens[i].tokenAddress] = _tokens[i].amount;
+        //     uint rewardOfToken = rewardsTokensAmount[rewardRoundId]._tokens[j].tokenAddress;
+        //     address tokenAddress = _tokens[j].tokenAddress;
+        //     uint amount = _tokens[j].amount;
+        //     rewardsTokensAmount[rewardRoundId][tokenAddress] = rewardOfToken + amount;
         }
-
+        amountNftRound[rewardRoundId] = _amountNft;
         for(uint i = 0; i <_recipients.length; i++){
             // recipients[i] = _recipients[i];
             recipients[i].push(_recipients[i]);
@@ -126,9 +135,9 @@ contract Rewarder is Ownable{
         bytes32 _r,
         bytes32 _s,
         bytes32 _UUID,//uuid to proceed identical receipts to always generate different hashes
-        RewardReceipt calldata _rewardReceipts
+        RewardReceipt calldata _rewardReceipt
     ) public {
-        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipts)); //воссоздаем сообщение которое подписывали на сервере
+        bytes32 msgHash = keccak256(abi.encode(msg.sender, _UUID, _rewardReceipt)); //воссоздаем сообщение которое подписывали на сервере
         // bytes32 msgHash = keccak256(abi.encode(recipient, _UUID, _rewardReceipts)); 
         require(executed[msgHash], "Rewarder: Has been executed!"); //проверяем что по этой подписи не выплачивали еще
         executed[msgHash] = false; 
@@ -136,7 +145,22 @@ contract Rewarder is Ownable{
         address _signer = verifyHash(msgHash, _v, _r, _s);
         require(_signer == signer, "Rewarder: signer not recovered from signed tx!"); //msgHash.toEthSignedMessageHash(),
         // require(msgHash.toEthSignedMessageHash().recover( _signature ) == signer, "Rewarder:: signer not recovered from signed tx!"); //msgHash.toEthSignedMessageHash(),
-
+        uint roundId = _rewardReceipt.roundId;
+        for(uint8 i = 0; i < _rewardReceipt.tokens.length; i++) {
+            address tokenAddress =_rewardReceipt.tokens[i].tokenAddress;
+            uint amount = _rewardReceipt.tokens[i].amount;
+            uint roundTokenBalance = rewardsTokensAmount[roundId][tokenAddress];
+            uint contractBalance = IERC20(tokenAddress).balanceOf(address(this));
+            require(roundTokenBalance >= amount || contractBalance >= amount, "PaymentStatuses: Wrong reward balance");
+            IERC20(tokenAddress).safeTransfer(msg.sender, amount);
+            rewardsTokensAmount[roundId][tokenAddress] = roundTokenBalance - amount;
+        }
+        for(uint8 i = 0; i < _rewardReceipt.nftIds.length; i++) {
+            require( amountNftRound[roundId] > 0 && NFT.balanceOf(address(this)) > 0, "PaymentStatuses: ");
+            uint nftId = _rewardReceipt.nftIds[i];
+            NFT.safeTransferFrom(address(this), msg.sender, nftId);
+            amountNftRound[roundId]--;
+        }
     }
 
     function msgHash(
